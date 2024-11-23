@@ -1,12 +1,11 @@
 <script>
 	import RecipeGenerator from './recipe-generator.svelte';
-	import Sidebar from './sidebar.svelte';
+	import IngredientSelector from './ingredient-selector.svelte';
 </script>
 
 <main class="container mx-auto mt-4">
-	<h1 class="text-2xl font-bold">Recipe Generator</h1>
 	<div class="flex justify-center gap-x-4">
-		<Sidebar />
+		<IngredientSelector />
 		<RecipeGenerator />
 	</div>
 </main>
