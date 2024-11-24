@@ -1,9 +1,9 @@
 <script lang="ts">
   import * as Accordion from "$lib/components/ui/accordion";
   import * as Popover from "$lib/components/ui/popover";
-  import { ingredients, selectedIngredients } from "$lib/data/ingredients.svelte";
+  import { categoriesAndIngredients, selectedIngredients } from "$lib/data/ingredients.svelte";
 
-  Object.keys(ingredients).forEach((category) => {
+  Object.keys(categoriesAndIngredients).forEach((category) => {
     selectedIngredients[category] = {};
   });
 
@@ -32,11 +32,16 @@
       >use ingredients from inventory</button>
     <p class="mt-4 w-full border-t-2 pt-2">or select ingredients below</p>
     <Accordion.Root>
-      {#each Object.keys(ingredients) as category}
+      {#each Object.keys(categoriesAndIngredients) as category}
         <Accordion.Item value={category}>
-          <Accordion.Trigger>{category}</Accordion.Trigger>
+          <Accordion.Trigger>
+            <div class="flex items-center gap-2">
+              <svelte:component this={categoriesAndIngredients[category].icon} size={24} />
+              {category}
+            </div>
+          </Accordion.Trigger>
           <Accordion.Content class="flex flex-wrap gap-1">
-            {#each ingredients[category] as ingredient}
+            {#each categoriesAndIngredients[category].ingredients as ingredient}
               <Popover.Root>
                 <Popover.Trigger>
                   <button
