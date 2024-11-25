@@ -34,4 +34,6 @@ export const categoriesAndIngredients: categoriesAndIngredientsType = {
   },
 };
 
-export const selectedIngredients: { [key: string]: { [key: string]: number } } = $state({});
+export const selectedIngredients: { [key: string]: { [key: string]: number | string } } = $state(
+  {},
+);
