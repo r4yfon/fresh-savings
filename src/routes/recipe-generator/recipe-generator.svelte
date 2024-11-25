@@ -2,7 +2,7 @@
   import { selectedIngredients } from "$lib/data/ingredients.svelte";
   import { BadgeAlert } from "lucide-svelte";
 
-  let className: string = "";
+  let className: { [key: string]: string } = $props();
   export { className as class };
 
   const clearSelectedIngredients = () => {
@@ -12,7 +12,7 @@
   };
 </script>
 
-<section class={className}>
+<section class={className.class}>
   {#if Object.values(selectedIngredients).some((category) => Object.keys(category).length > 0)}
     selected ingredients:
     <table class="mx-auto my-4 w-1/2 border text-left">
