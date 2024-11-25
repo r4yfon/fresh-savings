@@ -2,6 +2,10 @@
   import * as Accordion from "$lib/components/ui/accordion";
   import * as Popover from "$lib/components/ui/popover";
   import { categoriesAndIngredients, selectedIngredients } from "$lib/data/ingredients.svelte";
+  import { cn } from "$lib/utils";
+
+  let className: string = "";
+  export { className as class };
 
   Object.keys(categoriesAndIngredients).forEach((category) => {
     selectedIngredients[category] = {};
@@ -25,18 +29,21 @@
   };
 </script>
 
-<aside class="w-1/4 bg-slate-100">
+<aside class={cn("bg-slate-100", className)}>
   <div class="rounded-md border p-4">
-    <h1 class="mb-2 text-2xl font-bold">ingredients selecter</h1>
-    <button class="rounded-md bg-emerald-800 px-4 py-2 text-white hover:bg-emerald-700"
-      >use ingredients from inventory</button>
+    <h1 class="mb-2">ingredients selecter</h1>
+    <button class="rounded-md bg-emerald-800 px-4 py-2 text-left text-white hover:bg-emerald-700"
+      >use inventory items</button>
     <p class="mt-4 w-full border-t-2 pt-2">or select ingredients below</p>
     <Accordion.Root>
       {#each Object.keys(categoriesAndIngredients) as category}
         <Accordion.Item value={category}>
           <Accordion.Trigger>
             <div class="flex items-center gap-2">
-              <svelte:component this={categoriesAndIngredients[category].icon} size={24} />
+              <svelte:component
+                this={categoriesAndIngredients[category].icon}
+                size={24}
+                strokeWidth={1.5} />
               {category}
             </div>
           </Accordion.Trigger>

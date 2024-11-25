@@ -3,9 +3,9 @@
   import IngredientSelector from "./ingredient-selector.svelte";
 </script>
 
-<main class="container mx-auto mt-4">
-  <div class="flex justify-center gap-x-4">
-    <IngredientSelector />
-    <RecipeGenerator />
+<main class="container mt-4">
+  <div class="flex flex-col justify-center gap-x-4 md:flex-row">
+    <IngredientSelector class="w-full md:w-1/4" />
+    <RecipeGenerator class="w-full md:w-3/4" />
   </div>
 </main>
