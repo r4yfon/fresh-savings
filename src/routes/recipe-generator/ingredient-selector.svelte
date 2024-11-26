@@ -3,9 +3,11 @@
   import * as Popover from "$lib/components/ui/popover";
   import * as Tabs from "$lib/components/ui/tabs";
   import * as Select from "$lib/components/ui/select";
-  import { Check, type Icon as IconType } from "lucide-svelte";
-  import { categoriesAndIngredients, selectedIngredients } from "$lib/data/ingredients.svelte";
+  import { Check } from "lucide-svelte";
   import { cn } from "$lib/utils";
+  import { categoriesAndIngredients, selectedIngredients } from "$lib/data/ingredients.svelte";
+  import { inventory } from "$lib/data/inventory.svelte";
+  import type { Selected } from "bits-ui";
 
   let className: { [key: string]: string } = $props();
   export { className as class };
@@ -15,7 +17,46 @@
   });
 
   let measuredValue: number = $state(1);
-  let measuredUnit: string = $state("kg");
+  let measuredUnit: Selected<string> = $state({
+    value: "kg",
+    label: "kg",
+  });
+
+  // add inventory ingredients to selected ingredients object
+  const addInventoryIngredients = () => {
+    Object.keys(inventory).forEach((category) => {
+      if (selectedIngredients[category]) {
+        Object.keys(inventory[category]).forEach((ingredient) => {
+          selectedIngredients[category][ingredient] = inventory[category][ingredient];
+        });
+      } else {
+        selectedIngredients[category] = { ...inventory[category] };
+      }
+    });
+  };
+
+  const checkSelectedIngredientTab = (category: string, ingredient: string) => {
+    if (typeof selectedIngredients[category][ingredient] === "string") {
+      populateMeasuredTab("measured", category, ingredient);
+      return "measured";
+    } else {
+      return "quantity";
+    }
+  };
+
+  // populate measured tab with selected ingredients
+  const populateMeasuredTab = (tabValue: string, category: string, ingredient: string) => {
+    if (typeof selectedIngredients[category][ingredient] === "string") {
+      if (selectedIngredients[category][ingredient]) {
+        const existingValue = selectedIngredients[category][ingredient];
+        if (existingValue) {
+          const [num, unit] = existingValue.split(" ");
+          measuredValue = parseFloat(num);
+          measuredUnit = { value: unit, label: unit };
+        }
+      }
+    }
+  };
 
   // subtract or remove discrete ingredients from selected ingredients object
   const subtractIngredientQuantity = (category: string, ingredient: string) => () => {
@@ -44,7 +85,7 @@
   // add measured ingredients to selected ingredients object
   const addIngredientMeasured = (category: string, ingredient: string) => () => {
     if (measuredValue > 0) {
-      selectedIngredients[category][ingredient] = `${measuredValue} ${measuredUnit}`;
+      selectedIngredients[category][ingredient] = `${measuredValue} ${measuredUnit.label}`;
     }
   };
 </script>
@@ -52,8 +93,9 @@
 <aside class={cn("bg-slate-100 shadow-lg", className.class)}>
   <div class="rounded-md border p-4">
     <h1 class="mb-2">ingredients selecter</h1>
-    <button class="rounded-md bg-emerald-800 px-4 py-2 text-left text-white hover:bg-emerald-700"
-      >use inventory items</button>
+    <button
+      class="rounded-md bg-emerald-800 px-4 py-2 text-left text-white hover:bg-emerald-700"
+      onclick={addInventoryIngredients}>use inventory items</button>
     <p class="mt-4 w-full border-t-2 pt-2">or select ingredients below</p>
     <Accordion.Root>
       {#each Object.keys(categoriesAndIngredients) as category}
@@ -80,7 +122,9 @@
                 <Popover.Content class="flex w-[300px] flex-col items-center gap-2">
                   <p class="mb-2">{ingredient}</p>
                   <Tabs.Root
-                    value="quantity"
+                    onValueChange={(value) =>
+                      value && populateMeasuredTab(value, category, ingredient)}
+                    value={checkSelectedIngredientTab(category, ingredient)}
                     class="flex w-full flex-col items-center justify-center">
                     <Tabs.List>
                       <Tabs.Trigger value="quantity">quantity</Tabs.Trigger>
@@ -107,11 +151,15 @@
                           type="number"
                           min="0"
                           class="w-1/2 rounded-md border px-1 py-0.5"
-                          bind:value={measuredValue} />
+                          value={measuredValue} />
                         <Select.Root
+                          selected={measuredUnit}
                           onSelectedChange={(value) => {
-                            if (typeof value.value === "string") {
-                              measuredUnit = value.value;
+                            if (value && typeof value.value === "string") {
+                              measuredUnit = {
+                                value: value.value,
+                                label: value.value,
+                              };
                             }
                           }}>
                           <Select.Trigger class="w-1/4">
