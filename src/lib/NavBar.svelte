@@ -1,6 +1,9 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { slide } from "svelte/transition";
+  import Sun from "lucide-svelte/icons/sun";
+  import Moon from "lucide-svelte/icons/moon";
+  import { toggleMode } from "mode-watcher";
 
   let isMenuOpen: boolean = $state(false);
 
@@ -29,14 +32,22 @@
     </div>
     <div>
       <!-- login / sign up button on the right -->
-      <div class="hidden md:block">
+      <div class="hidden md:flex">
         <a href="/login" class="px-2 hover:underline">login</a>
         <a href="/signup" class="px-2 hover:underline">sign up</a>
+        <button
+          class="flex rounded-md bg-emerald-800 p-1 hover:bg-emerald-700"
+          onclick={toggleMode}>
+          <Sun
+            class="dark:-rotate-90dark:scale-0 h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all" />
+          <Moon
+            class="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+        </button>
       </div>
     </div>
 
     <!-- hamburger button -->
-    <div class="justify-self-end pe-4 md:hidden">
+    <div class="justify-self-end md:hidden">
       <button
         type="button"
         onclick={() => (isMenuOpen = !isMenuOpen)}
