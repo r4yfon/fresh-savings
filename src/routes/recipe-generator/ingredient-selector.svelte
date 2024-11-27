@@ -50,7 +50,7 @@
   };
 
   // populate measured tab with selected ingredients
-  const populateMeasuredTab = (tabValue: string, category: string, ingredient: string) => {
+  const populateMeasuredTab = (tabValue: string, category: string, ingredient: string) => {x
     if (typeof selectedIngredients[category][ingredient] === "string") {
       if (selectedIngredients[category][ingredient]) {
         const existingValue = selectedIngredients[category][ingredient];
