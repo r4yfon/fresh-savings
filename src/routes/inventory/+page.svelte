@@ -1,43 +1,87 @@
 <script lang="ts">
-  import { onMount } from "svelte";
-  import { inventory } from "$lib/data/inventory.svelte";
-
-  let displayedCategoriesAndIngredients: { [key: string]: { [key: string]: string | number } };
-  displayedCategoriesAndIngredients = inventory;
+  import { inventory, categoriesAndIcons } from "$lib/data/inventory.svelte";
+  import { BadgeAlert, Sigma } from "lucide-svelte";
+  import * as Tabs from "$lib/components/ui/tabs";
 </script>
 
-<section class="container mt-4">
-  <h1>inventory</h1>
-  {JSON.stringify(inventory)}
-  <table>
-    <thead>
-      <tr>
-        <th class="border">Category</th>
-        <th class="border">Ingredient</th>
-        <th class="border">Quantity</th>
-      </tr>
-    </thead>
-    <tbody>
-      {#each Object.keys(displayedCategoriesAndIngredients) as category}
-        {#each Object.keys(displayedCategoriesAndIngredients[category]) as ingredient, index}
-          <tr class="border">
-            {#if index === 0}
-              <td
-                rowspan={Object.keys(displayedCategoriesAndIngredients[category]).length}
-                class="px-1 py-0.5">{category}</td>
-            {/if}
-            <td class="border px-1 py-0.5">
-              {ingredient}
-            </td>
-            <td class="border px-1 py-0.5">
-              {displayedCategoriesAndIngredients[category][ingredient]}
-            </td>
-          </tr>
-        {/each}
-      {/each}
-    </tbody>
-  </table>
+<section class="container my-4">
+  <h1 class="mb-4">inventory</h1>
 
-  <button class="float-end rounded-md bg-emerald-800 px-4 py-2 text-white hover:bg-emerald-700"
+  <Tabs.Root class="text-center">
+    <Tabs.List
+      class="flex h-max justify-start gap-2 overflow-x-scroll text-start md:mx-auto md:w-max md:flex-nowrap lg:justify-center">
+      <Tabs.Trigger value="all">
+        <div class="flex items-center gap-2">
+          <Sigma />
+          all
+        </div>
+      </Tabs.Trigger>
+      {#each categoriesAndIcons as category}
+        {@const Icon = category.icon}
+        <Tabs.Trigger value={category.category}>
+          <div class="flex items-center gap-2">
+            <Icon />
+            {category.category}
+          </div>
+        </Tabs.Trigger>
+      {/each}
+    </Tabs.List>
+    <Tabs.Content value="all">
+      <div
+        class="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+        {#each Object.values(inventory) as ingredientQuantityAndExpiry}
+          {#each Object.entries(ingredientQuantityAndExpiry) as [ingredient, quantityAndExpiry]}
+            <div
+              class="ring:color-emerald-700 ring:ring-emerald-800 flex h-32 flex-col items-end justify-between rounded-md border p-4 hover:outline-none hover:ring-2 hover:ring-emerald-700 hover:ring-offset-0">
+              <div class="text-end">
+                {quantityAndExpiry.quantity}
+              </div>
+              <div class="self-start text-start">
+                <div class="font-bold">
+                  {ingredient}
+                </div>
+                <div>
+                  expires {quantityAndExpiry.expiry}
+                </div>
+              </div>
+            </div>
+          {/each}
+        {/each}
+      </div>
+    </Tabs.Content>
+    {#each categoriesAndIcons as category}
+      <Tabs.Content value={category.category}>
+        {#if inventory[category.category]}
+          <div
+            class="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            {#each Object.entries(inventory[category.category] ?? {}) as [ingredient, quantityAndExpiry]}
+              <div
+                class="ring:color-emerald-700 ring:ring-emerald-800 flex h-32 flex-col items-end justify-between rounded-md border p-4 hover:outline-none hover:ring-2 hover:ring-emerald-700 hover:ring-offset-0">
+                <div class="text-end">
+                  {quantityAndExpiry.quantity}
+                </div>
+                <div class="self-start text-start">
+                  <div class="font-bold">
+                    {ingredient}
+                  </div>
+                  <div>
+                    expires {quantityAndExpiry.expiry}
+                  </div>
+                </div>
+              </div>
+            {/each}
+          </div>
+        {:else}
+          <div class="mt-36 flex h-full flex-col items-center justify-center gap-y-2 text-center">
+            <BadgeAlert size={80} strokeWidth={2} />
+            <p class="text-balance">add more ingredients to your inventory</p>
+          </div>
+        {/if}
+      </Tabs.Content>
+    {/each}
+  </Tabs.Root>
+
+  <button
+    class="fixed bottom-8 right-8 rounded-md bg-emerald-800 px-4 py-2 text-white shadow-2xl hover:bg-emerald-700"
     >add new ingredient</button>
 </section>
