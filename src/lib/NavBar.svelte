@@ -7,9 +7,9 @@
 
   let isMenuOpen: boolean = $state(false);
 
-  onMount(() => {
+  const closeMenu = () => {
     isMenuOpen = false;
-  });
+  };
 
   const tagsAndRoutes: { tag: string; route: string }[] = [
     { tag: "home", route: "/" },
@@ -26,15 +26,17 @@
       <!-- a tags on the left -->
       <div class="hidden md:block">
         {#each tagsAndRoutes as tag}
-          <a href={tag.route} class="px-2 hover:underline">{tag.tag}</a>
+          <a href={tag.route} class="px-2 hover:underline" onclick={closeMenu}>
+            {tag.tag}
+          </a>
         {/each}
       </div>
     </div>
     <div>
       <!-- login / sign up button on the right -->
       <div class="hidden md:flex">
-        <a href="/login" class="px-2 hover:underline">login</a>
-        <a href="/signup" class="px-2 hover:underline">sign up</a>
+        <a href="/login" class="px-2 hover:underline" onclick={closeMenu}>login</a>
+        <a href="/signup" class="px-2 hover:underline" onclick={closeMenu}>sign up</a>
         <button
           class="flex rounded-md bg-emerald-800 p-1 hover:bg-emerald-700"
           onclick={toggleMode}>
@@ -91,10 +93,10 @@
       <div class="absolute top-2 w-full bg-emerald-800" transition:slide={{ duration: 200 }}>
         <div class="flex flex-col gap-y-2 p-4">
           {#each tagsAndRoutes as tag}
-            <a href={tag.route} class="hover:underline">{tag.tag}</a>
+            <a href={tag.route} class="hover:underline" onclick={closeMenu}>{tag.tag}</a>
           {/each}
-          <a href="/login" class="hover:underline">login</a>
-          <a href="/signup" class="hover:underline">sign up</a>
+          <a href="/login" class="hover:underline" onclick={closeMenu}>login</a>
+          <a href="/signup" class="hover:underline" onclick={closeMenu}>sign up</a>
         </div>
       </div>
     </div>
