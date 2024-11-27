@@ -9,7 +9,7 @@
 
   <Tabs.Root class="text-center">
     <Tabs.List
-      class="flex h-max justify-start gap-2 overflow-x-scroll text-start md:mx-auto md:w-max md:flex-nowrap lg:justify-center">
+      class="flex h-max justify-start gap-2 overflow-x-auto text-start md:mx-auto md:w-max md:flex-nowrap lg:justify-center">
       <Tabs.Trigger value="all">
         <div class="flex items-center gap-2">
           <Sigma />

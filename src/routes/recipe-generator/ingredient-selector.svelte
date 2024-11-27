@@ -27,10 +27,15 @@
     Object.keys(inventory).forEach((category) => {
       if (selectedIngredients[category]) {
         Object.keys(inventory[category]).forEach((ingredient) => {
-          selectedIngredients[category][ingredient] = inventory[category][ingredient];
+          selectedIngredients[category][ingredient] = inventory[category][ingredient].quantity;
         });
       } else {
-        selectedIngredients[category] = { ...inventory[category] };
+        selectedIngredients[category] = Object.fromEntries(
+          Object.entries(inventory[category]).map(([ingredient, details]) => [
+            ingredient,
+            details.quantity,
+          ]),
+        );
       }
     });
   };
