@@ -19,7 +19,7 @@
   ];
 </script>
 
-<nav class="bg-emerald-800 py-2 text-white md:py-4">
+<nav class="sticky top-0 bg-emerald-800 py-2 text-white md:py-4">
   <div class="container mx-auto flex items-center justify-between px-4 sm:px-6 lg:px-8">
     <div class="flex items-center">
       <img src="/favicon.png" alt="logo" class="me-2 h-8" />
