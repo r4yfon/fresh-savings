@@ -50,7 +50,7 @@
   };
 
   // populate measured tab with selected ingredients
-  const populateMeasuredTab = (tabValue: string, category: string, ingredient: string) => {x
+  const populateMeasuredTab = (tabValue: string, category: string, ingredient: string) => {
     if (typeof selectedIngredients[category][ingredient] === "string") {
       if (selectedIngredients[category][ingredient]) {
         const existingValue = selectedIngredients[category][ingredient];
@@ -115,14 +115,12 @@
           <Accordion.Content class="flex flex-wrap gap-1">
             {#each categoriesAndIngredients[category].ingredients as ingredient}
               <Popover.Root>
-                <Popover.Trigger>
-                  <button
-                    class="flex items-center gap-x-1 rounded-md bg-emerald-800 px-4 py-2 text-white hover:bg-emerald-700">
-                    {ingredient}
-                    {#if selectedIngredients[category][ingredient]}
-                      <Check color="white" size={16} />
-                    {/if}
-                  </button>
+                <Popover.Trigger
+                  class="flex items-center gap-x-1 rounded-md bg-emerald-800 px-4 py-2 text-white hover:bg-emerald-700">
+                  {ingredient}
+                  {#if selectedIngredients[category][ingredient]}
+                    <Check color="white" size={16} />
+                  {/if}
                 </Popover.Trigger>
                 <Popover.Content class="flex w-[300px] flex-col items-center gap-2">
                   <p class="mb-2">{ingredient}</p>

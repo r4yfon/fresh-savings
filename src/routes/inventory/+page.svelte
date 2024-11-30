@@ -2,6 +2,7 @@
   import { inventory, categoriesAndIcons } from "$lib/data/inventory.svelte";
   import { BadgeAlert, Sigma } from "lucide-svelte";
   import * as Tabs from "$lib/components/ui/tabs";
+  import * as Popover from "$lib/components/ui/popover";
 </script>
 
 <section class="container my-4">
@@ -81,7 +82,17 @@
     {/each}
   </Tabs.Root>
 
-  <button
-    class="fixed bottom-8 right-8 rounded-md bg-emerald-800 px-4 py-2 text-white shadow-2xl hover:bg-emerald-700"
-    >add new ingredient</button>
+  <Popover.Root>
+    <Popover.Trigger
+      class="fixed bottom-8 right-8 rounded-md bg-emerald-800 px-4 py-2 text-white shadow-xl hover:bg-emerald-700">
+      add new ingredient
+      <!-- <button
+        class="fixed bottom-8 right-8 rounded-md bg-emerald-800 px-4 py-2 text-white shadow-xl hover:bg-emerald-700"
+        >add new ingredient</button> -->
+    </Popover.Trigger>
+    <Popover.Content>
+      <h3>new ingredient</h3>
+      
+    </Popover.Content>
+  </Popover.Root>
 </section>
