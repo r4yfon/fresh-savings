@@ -1,6 +1,4 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 @layer base {
   h1 {
@@ -100,7 +98,7 @@
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url("Inter-Regular.woff2") format("woff2");
+  src: url("./public/fonts/Inter-Regular.woff2") format("woff2");
 }
 
 @font-face {
@@ -108,7 +106,7 @@
   font-style: normal;
   font-weight: 600;
   font-display: swap;
-  src: url("Inter-SemiBold.woff2") format("woff2");
+  src: url("./public/fonts/Inter-SemiBold.woff2") format("woff2");
 }
 
 @font-face {
