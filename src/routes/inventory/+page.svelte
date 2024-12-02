@@ -2,6 +2,54 @@
   import { inventory, categoriesAndIcons } from "$lib/data/inventory.svelte";
   import { BadgeAlert, Sigma } from "lucide-svelte";
   import * as Tabs from "$lib/components/ui/tabs";
+  import * as Popover from "$lib/components/ui/popover";
+  import * as Select from "$lib/components/ui/select";
+  import type { Selected } from "bits-ui";
+
+  let ingredientName: string = $state("");
+  let selectedTab: string = $state("");
+  let ingredientExpiry: Date = $state(new Date());
+  let ingredientQuantity: number = $state(0);
+  let ingredientMeasured: number = $state(0);
+  let ingredientMeasuredUnit: Selected<string> = $state({
+    value: "kg",
+    label: "kg",
+  });
+
+  let ingredientCategory: Selected<string> = $state({
+    value: "",
+    label: "Select a category",
+  });
+
+  const returnTabValue = (value: string) => {
+    selectedTab = value;
+  };
+
+  const decreaseIngredientQuantity = () => {
+    if (typeof ingredientQuantity === "number" && ingredientQuantity > 0) {
+      ingredientQuantity--;
+    }
+  };
+
+  const increaseIngredientQuantity = () => {
+    if (typeof ingredientQuantity === "number") {
+      ingredientQuantity++;
+    }
+  };
+
+  const addIngredient = () => {
+    if (selectedTab === "quantity") {
+      inventory[ingredientCategory.value][ingredientName] = {
+        quantity: ingredientQuantity,
+        expiry: String(ingredientExpiry),
+      };
+    } else if (selectedTab === "measured") {
+      inventory[ingredientCategory.value][ingredientName] = {
+        quantity: `${ingredientMeasured} ${ingredientMeasuredUnit.value}`,
+        expiry: String(ingredientExpiry),
+      };
+    }
+  };
 </script>
 
 <section class="container my-4">
@@ -81,7 +129,17 @@
     {/each}
   </Tabs.Root>
 
-  <button
-    class="fixed bottom-8 right-8 rounded-md bg-emerald-800 px-4 py-2 text-white shadow-2xl hover:bg-emerald-700"
-    >add new ingredient</button>
+  <Popover.Root>
+    <Popover.Trigger
+      class="fixed bottom-8 right-8 rounded-md bg-emerald-800 px-4 py-2 text-white shadow-xl hover:bg-emerald-700">
+      add new ingredient
+      <!-- <button
+        class="fixed bottom-8 right-8 rounded-md bg-emerald-800 px-4 py-2 text-white shadow-xl hover:bg-emerald-700"
+        >add new ingredient</button> -->
+    </Popover.Trigger>
+    <Popover.Content>
+      <h3>new ingredient</h3>
+
+    </Popover.Content>
+  </Popover.Root>
 </section>
