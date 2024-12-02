@@ -131,15 +131,105 @@
 
   <Popover.Root>
     <Popover.Trigger
-      class="fixed bottom-8 right-8 rounded-md bg-emerald-800 px-4 py-2 text-white shadow-xl hover:bg-emerald-700">
+      class="fixed bottom-8 right-8 rounded-md bg-emerald-800 px-4 py-2 text-white shadow-2xl hover:bg-emerald-700">
       add new ingredient
-      <!-- <button
-        class="fixed bottom-8 right-8 rounded-md bg-emerald-800 px-4 py-2 text-white shadow-xl hover:bg-emerald-700"
-        >add new ingredient</button> -->
     </Popover.Trigger>
-    <Popover.Content>
-      <h3>new ingredient</h3>
-
+    <Popover.Content class="relative flex w-96 flex-col gap-2">
+      <h3>add new ingredient</h3>
+      <Select.Root
+        selected={ingredientCategory}
+        onSelectedChange={(value) => {
+          if (value && typeof value.value === "string") {
+            ingredientCategory = {
+              value: value.value,
+              label: value.value,
+            };
+          }
+        }}>
+        <Select.Trigger>
+          <Select.Value />
+        </Select.Trigger>
+        <Select.Content>
+          {#each categoriesAndIcons as category}
+            {@const Icon = category.icon}
+            <Select.Item value={category.category}>
+              <Icon strokeWidth={1} class="me-4" />
+              {category.category}
+            </Select.Item>
+          {/each}
+        </Select.Content>
+      </Select.Root>
+      <input
+        bind:value={ingredientName}
+        class="rounded-md border p-2"
+        type="text"
+        placeholder="enter ingredient name" />
+      <Tabs.Root
+        onValueChange={(value) => value && returnTabValue(value)}
+        class="flex w-full flex-col items-center">
+        <Tabs.List>
+          <Tabs.Trigger value="quantity">quantity</Tabs.Trigger>
+          <Tabs.Trigger value="measured">measured</Tabs.Trigger>
+        </Tabs.List>
+        <Tabs.Content value="quantity">
+          <button
+            class="rounded-md bg-emerald-800 px-2 py-1 text-white hover:bg-emerald-700"
+            onclick={decreaseIngredientQuantity}>
+            -
+          </button>
+          <input
+            type="number"
+            class="w-max rounded-md border p-2"
+            bind:value={ingredientQuantity} />
+          <!-- <span class="mx-1">
+            {#if typeof ingredientQuantity === "number"}
+              {ingredientQuantity}
+            {:else}
+              0
+            {/if}
+          </span> -->
+          <button
+            class="rounded-md bg-emerald-800 px-2 py-1 text-white hover:bg-emerald-700"
+            onclick={increaseIngredientQuantity}>
+            +
+          </button>
+        </Tabs.Content>
+        <Tabs.Content value="measured">
+          <div class="flex justify-center gap-2">
+            <input
+              type="number"
+              min="0"
+              class="w-1/2 rounded-md border px-1 py-0.5"
+              bind:value={ingredientMeasured} />
+            <Select.Root
+              selected={ingredientMeasuredUnit}
+              onSelectedChange={(value) => {
+                if (value && typeof value.value === "string") {
+                  ingredientMeasuredUnit = {
+                    value: value.value,
+                    label: value.value,
+                  };
+                }
+              }}>
+              <Select.Trigger>
+                <Select.Value />
+              </Select.Trigger>
+              <Select.Content>
+                <Select.Item value="g">g</Select.Item>
+                <Select.Item value="kg">kg</Select.Item>
+                <Select.Item value="ml">ml</Select.Item>
+                <Select.Item value="l">l</Select.Item>
+              </Select.Content>
+            </Select.Root>
+          </div>
+        </Tabs.Content>
+      </Tabs.Root>
+      <input type="date" bind:value={ingredientExpiry} class="rounded-md border p-2" />
+      <button
+        class="rounded-md bg-emerald-800 px-4 py-1 text-white hover:bg-emerald-700"
+        onclick={addIngredient}>
+        add
+      </button>
     </Popover.Content>
   </Popover.Root>
 </section>
