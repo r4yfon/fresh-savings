@@ -146,6 +146,11 @@ const RecipeGenerator = ({ userId }: RecipeGeneratorProps) => {
     },
   });
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    addRecipeMutation.mutate(formData);
+  };
+
   const handleGeneratedRecipe = (recipe: any) => {
     setGeneratedRecipe(recipe);
     setFormData({
