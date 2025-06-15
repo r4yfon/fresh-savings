@@ -3,10 +3,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Package, Users, Utensils, Calendar, MapPin, Heart } from "lucide-react";
 
-const LandingPage = () => {
+interface LandingPageProps {
+  onGetStarted?: () => void;
+}
+
+const LandingPage = ({ onGetStarted }: LandingPageProps) => {
   const handleGetStarted = () => {
-    // This will navigate to the main app - you might want to implement proper routing
-    window.location.href = "/app";
+    if (onGetStarted) {
+      onGetStarted();
+    }
   };
 
   return (
@@ -15,7 +20,7 @@ const LandingPage = () => {
       <div className="container mx-auto px-4 py-16">
         <div className="text-center mb-16">
           <h1 className="text-5xl font-bold text-gray-900 mb-6">
-            Welcome to <span className="text-green-600">PantryPal</span>
+            Welcome to <span className="text-green-800">FreshSavings</span>
           </h1>
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
             Your smart companion for managing your pantry, discovering recipes, and sharing food with your community.
@@ -30,7 +35,7 @@ const LandingPage = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
           <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
             <CardHeader className="text-center">
-              <Package className="w-12 h-12 text-green-600 mx-auto mb-4" />
+              <Package className="w-12 h-12 text-green-800 mx-auto mb-4" />
               <CardTitle className="text-xl">Smart Pantry Management</CardTitle>
             </CardHeader>
             <CardContent>
@@ -43,7 +48,7 @@ const LandingPage = () => {
 
           <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
             <CardHeader className="text-center">
-              <Utensils className="w-12 h-12 text-blue-600 mx-auto mb-4" />
+              <Utensils className="w-12 h-12 text-green-800 mx-auto mb-4" />
               <CardTitle className="text-xl">AI Recipe Generator</CardTitle>
             </CardHeader>
             <CardContent>
@@ -55,7 +60,7 @@ const LandingPage = () => {
 
           <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
             <CardHeader className="text-center">
-              <Users className="w-12 h-12 text-purple-600 mx-auto mb-4" />
+              <Users className="w-12 h-12 text-green-800 mx-auto mb-4" />
               <CardTitle className="text-xl">Community Food Sharing</CardTitle>
             </CardHeader>
             <CardContent>
@@ -72,7 +77,7 @@ const LandingPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="flex flex-col items-center">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-                <span className="text-2xl font-bold text-green-600">1</span>
+                <span className="text-2xl font-bold text-green-800">1</span>
               </div>
               <h3 className="text-xl font-semibold mb-2">Add Your Items</h3>
               <p className="text-gray-600">
@@ -81,8 +86,8 @@ const LandingPage = () => {
             </div>
             
             <div className="flex flex-col items-center">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-                <span className="text-2xl font-bold text-blue-600">2</span>
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                <span className="text-2xl font-bold text-green-800">2</span>
               </div>
               <h3 className="text-xl font-semibold mb-2">Get Recipe Ideas</h3>
               <p className="text-gray-600">
@@ -91,8 +96,8 @@ const LandingPage = () => {
             </div>
             
             <div className="flex flex-col items-center">
-              <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mb-4">
-                <span className="text-2xl font-bold text-purple-600">3</span>
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                <span className="text-2xl font-bold text-green-800">3</span>
               </div>
               <h3 className="text-xl font-semibold mb-2">Share & Connect</h3>
               <p className="text-gray-600">
@@ -104,10 +109,10 @@ const LandingPage = () => {
 
         {/* Benefits Section */}
         <div className="bg-white rounded-2xl p-8 shadow-lg">
-          <h2 className="text-3xl font-bold text-center text-gray-900 mb-8">Why Choose PantryPal?</h2>
+          <h2 className="text-3xl font-bold text-center text-gray-900 mb-8">Why Choose FreshSavings?</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="flex items-start space-x-4">
-              <Calendar className="w-8 h-8 text-green-600 mt-1" />
+              <Calendar className="w-8 h-8 text-green-800 mt-1" />
               <div>
                 <h3 className="text-lg font-semibold mb-2">Reduce Food Waste</h3>
                 <p className="text-gray-600">
@@ -117,7 +122,7 @@ const LandingPage = () => {
             </div>
             
             <div className="flex items-start space-x-4">
-              <Heart className="w-8 h-8 text-red-600 mt-1" />
+              <Heart className="w-8 h-8 text-green-800 mt-1" />
               <div>
                 <h3 className="text-lg font-semibold mb-2">Save Money</h3>
                 <p className="text-gray-600">
@@ -127,7 +132,7 @@ const LandingPage = () => {
             </div>
             
             <div className="flex items-start space-x-4">
-              <MapPin className="w-8 h-8 text-blue-600 mt-1" />
+              <MapPin className="w-8 h-8 text-green-800 mt-1" />
               <div>
                 <h3 className="text-lg font-semibold mb-2">Build Community</h3>
                 <p className="text-gray-600">
@@ -137,7 +142,7 @@ const LandingPage = () => {
             </div>
             
             <div className="flex items-start space-x-4">
-              <Utensils className="w-8 h-8 text-purple-600 mt-1" />
+              <Utensils className="w-8 h-8 text-green-800 mt-1" />
               <div>
                 <h3 className="text-lg font-semibold mb-2">Discover New Recipes</h3>
                 <p className="text-gray-600">

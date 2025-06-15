@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import AuthComponent from "@/components/auth/AuthComponent";
@@ -24,8 +23,16 @@ const Index = () => {
     },
   });
 
+  const handleGetStarted = () => {
+    if (session) {
+      setActiveTab("pantry");
+    } else {
+      setActiveTab("auth");
+    }
+  };
+
   // If no session and not on landing page, show auth
-  if (!session && activeTab !== "landing") {
+  if (!session && activeTab !== "landing" && activeTab !== "auth") {
     return (
       <div className="container mx-auto p-4">
         <div className="max-w-md mx-auto">
@@ -46,7 +53,17 @@ const Index = () => {
   };
 
   if (activeTab === "landing") {
-    return <LandingPage />;
+    return <LandingPage onGetStarted={handleGetStarted} />;
+  }
+
+  if (activeTab === "auth" || (!session && activeTab !== "landing")) {
+    return (
+      <div className="container mx-auto p-4">
+        <div className="max-w-md mx-auto">
+          <AuthComponent />
+        </div>
+      </div>
+    );
   }
 
   if (!session) {
