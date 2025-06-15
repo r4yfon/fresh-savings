@@ -12,14 +12,19 @@ import {
 } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { ChefHat, Menu, Package, Users } from "lucide-react";
-import { useState } from "react";
+import { ChefHat, Menu, Moon, Package, Sun, Users } from "lucide-react";
+import React, { useState } from "react";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("landing");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false);
   const [authTabValue, setAuthTabValue] = useState("signin");
+  const [darkMode, setDarkMode] = useState(
+    () =>
+      window.matchMedia &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches,
+  );
 
   const { data: session } = useQuery({
     queryKey: ["session"],
@@ -56,6 +61,27 @@ const Index = () => {
     setIsAuthDialogOpen(true);
   };
 
+  const handleToggleDarkMode = () => {
+    setDarkMode((prev) => {
+      const next = !prev;
+      if (next) {
+        document.documentElement.classList.add("dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+      }
+      return next;
+    });
+  };
+
+  // Ensure theme is set on mount
+  React.useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, [darkMode]);
+
   // If no session and not on landing page, show auth
   if (!session && activeTab !== "landing" && activeTab !== "auth") {
     return (
@@ -87,34 +113,53 @@ const Index = () => {
               <h1 className="text-xl font-bold">FreshSavings</h1>
             </div>
 
-            <div className="flex items-center gap-1">
+            {/* Navigation buttons (Pantry, Recipes, Community) */}
+            {session && (
+              <div className="flex items-center gap-1">
+                <Button
+                  variant={activeTab === "pantry" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => handleNavigation("pantry")}
+                  className="px-3">
+                  <Package className="w-4 h-4" />
+                  Pantry
+                </Button>
+                <Button
+                  variant={activeTab === "recipes" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => handleNavigation("recipes")}
+                  className="px-3">
+                  <ChefHat className="w-4 h-4" />
+                  Recipe Generator
+                </Button>
+                <Button
+                  variant={activeTab === "community" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => handleNavigation("community")}
+                  className="px-3">
+                  <Users className="w-4 h-4" />
+                  Community Kitchen
+                </Button>
+              </div>
+            )}
+
+            {/* Rightmost controls: dark mode toggle and auth buttons */}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Toggle dark mode"
+                onClick={handleToggleDarkMode}>
+                {darkMode ? (
+                  <Sun className="w-5 h-5" />
+                ) : (
+                  <Moon className="w-5 h-5" />
+                )}
+              </Button>
               {session ? (
-                <>
-                  <Button
-                    variant={activeTab === "pantry" ? "default" : "ghost"}
-                    size="sm"
-                    onClick={() => handleNavigation("pantry")}
-                    className="px-3">
-                    <Package className="w-4 h-4" />
-                    Pantry
-                  </Button>
-                  <Button
-                    variant={activeTab === "recipes" ? "default" : "ghost"}
-                    size="sm"
-                    onClick={() => handleNavigation("recipes")}
-                    className="px-3">
-                    <ChefHat className="w-4 h-4" />
-                    Recipe Generator
-                  </Button>
-                  <Button
-                    variant={activeTab === "community" ? "default" : "ghost"}
-                    size="sm"
-                    onClick={() => handleNavigation("community")}
-                    className="px-3">
-                    <Users className="w-4 h-4" />
-                    Community Kitchen
-                  </Button>
-                </>
+                <Button variant="destructive" onClick={handleSignOut}>
+                  Sign Out
+                </Button>
               ) : (
                 <>
                   <Button
@@ -122,24 +167,18 @@ const Index = () => {
                     size="sm"
                     onClick={handleLoginClick}
                     className="px-3">
-                    Login
+                    Log in
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={handleSignUpClick}
                     className="px-3">
-                    Sign Up
+                    Sign up
                   </Button>
                 </>
               )}
             </div>
-
-            {session && (
-              <Button variant="outline" onClick={handleSignOut}>
-                Sign Out
-              </Button>
-            )}
           </div>
         </div>
       </div>
@@ -153,6 +192,17 @@ const Index = () => {
             </div>
 
             <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Toggle dark mode"
+                onClick={handleToggleDarkMode}>
+                {darkMode ? (
+                  <Sun className="w-5 h-5" />
+                ) : (
+                  <Moon className="w-5 h-5" />
+                )}
+              </Button>
               <Popover
                 open={isMobileMenuOpen}
                 onOpenChange={setIsMobileMenuOpen}>
@@ -190,9 +240,9 @@ const Index = () => {
                           <Users className="w-4 h-4" />
                           Community Kitchen
                         </Button>
-                        <div className="border-t pt-2 mt-2">
+                        <div className="border-t pt-2 mt-2 flex gap-2">
                           <Button
-                            variant="outline"
+                            variant="destructive"
                             className="w-full justify-start"
                             onClick={handleSignOut}>
                             Sign Out
@@ -205,13 +255,13 @@ const Index = () => {
                           variant="ghost"
                           className="justify-start"
                           onClick={handleLoginClick}>
-                          Login
+                          Log in
                         </Button>
                         <Button
                           variant="outline"
                           className="justify-start"
                           onClick={handleSignUpClick}>
-                          Sign Up
+                          Sign up
                         </Button>
                       </>
                     )}
