@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,7 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Calendar, Settings, Apple, Carrot, Milk, Beef, Wheat, Spice, Package2, Snowflake, HelpCircle } from "lucide-react";
+import { Plus, Trash2, Calendar, Settings, Apple, Carrot, Milk, Beef, Wheat, Utensils, Package2, Snowflake, HelpCircle } from "lucide-react";
 import { format } from "date-fns";
 
 interface PantryItem {
@@ -34,7 +35,7 @@ const categoryIcons = {
   dairy: Milk,
   meat: Beef,
   grains: Wheat,
-  spices: Spice,
+  spices: Utensils,
   canned: Package2,
   frozen: Snowflake,
   other: HelpCircle,
