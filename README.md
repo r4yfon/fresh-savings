@@ -19,6 +19,15 @@ The initial version of this project was scaffolded using [lovable.dev](https://l
 - **Backend:** Supabase (PostgreSQL, Auth, Functions)
 - **State/Data:** React Query
 
+
+## Live Demo
+
+You can try out FreshSavings online at [fresh-savings.vercel.app](https://fresh-savings.vercel.app).
+
+**Test Account:**
+- **Email:** test@test.com
+- **Password:** 00000000
+
 ## Getting Started
 
 ### Prerequisites
@@ -54,6 +63,7 @@ The initial version of this project was scaffolded using [lovable.dev](https://l
 
 4. **Open the app:**
    - Visit [http://localhost:8080](http://localhost:8080) in your browser.
+
 
 ## Project Structure
 
