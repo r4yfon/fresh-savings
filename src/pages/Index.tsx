@@ -106,7 +106,7 @@ const Index = () => {
   return (
     <div className="min-h-screen">
       {/* Desktop Navigation */}
-      <div className="hidden md:block border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="hidden md:block border-b bg-background/95 backdrop-blur sticky top-0 supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-2">
