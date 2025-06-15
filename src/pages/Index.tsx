@@ -135,17 +135,19 @@ const Index = () => {
                   </Button>
                 </>
               )}
-              <ThemeToggle />
             </div>
             
-            {session && (
-              <Button
-                variant="destructive"
-                onClick={handleSignOut}
-              >
-                Sign Out
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              {session && (
+                <Button
+                  variant="destructive"
+                  onClick={handleSignOut}
+                >
+                  Sign Out
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </div>
