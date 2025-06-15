@@ -9,7 +9,7 @@ import LandingPage from "@/components/landing/LandingPage";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { ChefHat, Package, Users, Home, Menu } from "lucide-react";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, NavigationMenuTrigger } from "@/components/ui/navigation-menu";
 
 const Index = () => {
@@ -143,14 +143,14 @@ const Index = () => {
               >
                 <Home className="w-4 h-4" />
               </Button>
-              <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-                <SheetTrigger asChild>
+              <Popover open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+                <PopoverTrigger asChild>
                   <Button variant="ghost" size="sm">
                     <Menu className="w-5 h-5" />
                   </Button>
-                </SheetTrigger>
-                <SheetContent side="right" className="w-72">
-                  <div className="flex flex-col gap-4 mt-8">
+                </PopoverTrigger>
+                <PopoverContent side="bottom" align="end" className="w-56 p-2">
+                  <div className="flex flex-col gap-1">
                     <Button
                       variant={activeTab === "pantry" ? "default" : "ghost"}
                       className="justify-start"
@@ -175,18 +175,18 @@ const Index = () => {
                       <Users className="w-4 h-4 mr-2" />
                       Community Kitchen
                     </Button>
-                    <div className="border-t pt-4 mt-4">
+                    <div className="border-t pt-2 mt-2">
                       <Button
                         variant="outline"
-                        className="w-full"
+                        className="w-full justify-start"
                         onClick={() => supabase.auth.signOut()}
                       >
                         Sign Out
                       </Button>
                     </div>
                   </div>
-                </SheetContent>
-              </Sheet>
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
         </div>
