@@ -207,41 +207,6 @@ const PantryManager = ({ userId }: PantryManagerProps) => {
     },
   });
 
-  const contributeItemMutation = useMutation({
-    mutationFn: async (item: PantryItem) => {
-      const { data, error } = await supabase
-        .from('food_contributions')
-        .insert({
-          contributor_id: userId,
-          name: item.name,
-          quantity: item.quantity,
-          unit: item.unit,
-          category: item.category,
-          available_until: getTwoWeeksFromNow(),
-        })
-        .select()
-        .single();
-      
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['food-contributions'] });
-      toast({
-        title: "Success",
-        description: "Item contributed to community kitchen!",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: "Failed to contribute item",
-        variant: "destructive",
-      });
-      console.error('Error contributing item:', error);
-    },
-  });
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     addItemMutation.mutate(formData);
@@ -252,6 +217,13 @@ const PantryManager = ({ userId }: PantryManagerProps) => {
       setSelectedItems([...selectedItems, itemId]);
     } else {
       setSelectedItems(selectedItems.filter(id => id !== itemId));
+    }
+  };
+
+  const handleCardClick = (itemId: string) => {
+    if (isManageMode) {
+      const isSelected = selectedItems.includes(itemId);
+      handleItemSelection(itemId, !isSelected);
     }
   };
 
@@ -310,7 +282,8 @@ const PantryManager = ({ userId }: PantryManagerProps) => {
           {pantryItems.length > 0 && (
             <>
               <Button
-                variant="outline"
+                variant={isManageMode ? "default" : "outline"}
+                className={isManageMode ? "bg-green-600 hover:bg-green-700" : ""}
                 onClick={() => setIsManageMode(!isManageMode)}
               >
                 <Settings className="w-4 h-4 mr-2" />
@@ -501,16 +474,25 @@ const PantryManager = ({ userId }: PantryManagerProps) => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredPantryItems.map((item) => {
               const IconComponent = categoryIcons[item.category as keyof typeof categoryIcons] || HelpCircle;
+              const isSelected = selectedItems.includes(item.id);
               
               return (
-                <Card key={item.id} className={`${isExpiringSoon(item.expiry_date) ? 'border-red-500' : ''}`}>
+                <Card 
+                  key={item.id} 
+                  className={`
+                    ${isExpiringSoon(item.expiry_date) ? 'border-red-500' : ''} 
+                    ${isManageMode ? 'cursor-pointer hover:bg-muted/50' : ''}
+                    ${isSelected ? 'ring-2 ring-primary' : ''}
+                  `}
+                  onClick={() => handleCardClick(item.id)}
+                >
                   <CardContent className="p-4">
-                    <div className="flex flex-col items-center text-center space-y-3">
-                      {/* Icon at top - 48px */}
-                      <IconComponent className="w-12 h-12 text-muted-foreground" />
+                    <div className="flex flex-col items-start text-left space-y-3">
+                      {/* Icon at top - 36px */}
+                      <IconComponent className="w-9 h-9 text-muted-foreground" />
                       
                       {/* Item name */}
-                      <div className="space-y-1">
+                      <div className="space-y-1 w-full">
                         <h3 className="font-semibold text-lg">{item.name}</h3>
                         <p className="text-sm text-muted-foreground">
                           {item.quantity} {item.unit}
@@ -523,9 +505,9 @@ const PantryManager = ({ userId }: PantryManagerProps) => {
                       </div>
 
                       {/* Additional info */}
-                      <div className="space-y-1 text-center w-full">
+                      <div className="space-y-1 w-full">
                         {item.expiry_date && (
-                          <div className={`flex items-center justify-center gap-1 text-xs ${isExpiringSoon(item.expiry_date) ? 'text-red-600' : 'text-muted-foreground'}`}>
+                          <div className={`flex items-center gap-1 text-xs ${isExpiringSoon(item.expiry_date) ? 'text-red-600' : 'text-muted-foreground'}`}>
                             <Calendar className="w-3 h-3" />
                             <span>Expires: {format(new Date(item.expiry_date), 'MMM dd, yyyy')}</span>
                           </div>
@@ -542,22 +524,17 @@ const PantryManager = ({ userId }: PantryManagerProps) => {
                             id={`item-${item.id}`}
                             checked={selectedItems.includes(item.id)}
                             onCheckedChange={(checked) => handleItemSelection(item.id, checked as boolean)}
+                            onClick={(e) => e.stopPropagation()}
                           />
                         )}
                         <Button
                           variant="outline"
                           size="sm"
-                          className="flex-1"
-                          onClick={() => contributeItemMutation.mutate(item)}
-                          disabled={contributeItemMutation.isPending}
-                        >
-                          <Share className="w-3 h-3 mr-1" />
-                          Share
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => deleteItemMutation.mutate(item.id)}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteItemMutation.mutate(item.id);
+                          }}
                           disabled={deleteItemMutation.isPending}
                         >
                           <Trash2 className="w-3 h-3" />

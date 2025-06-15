@@ -7,7 +7,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChefHat, Package, Plus } from "lucide-react";
+import { ChefHat, Package, Plus, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import AIRecipeGenerator from "./AIRecipeGenerator";
 import IngredientSelector from "./IngredientSelector";
 import PantryItemSelector from "./PantryItemSelector";
@@ -130,6 +131,10 @@ const RecipeGenerator = ({ userId, onNavigateToPantry }: RecipeGeneratorProps) =
     setGeneratedRecipe(recipe);
   };
 
+  const removeIngredient = (indexToRemove: number) => {
+    setSelectedIngredients(selectedIngredients.filter((_, index) => index !== indexToRemove));
+  };
+
   if (isLoading) {
     return <div>Loading pantry items...</div>;
   }
@@ -248,27 +253,71 @@ const RecipeGenerator = ({ userId, onNavigateToPantry }: RecipeGeneratorProps) =
         </Card>
       ) : (
         <div className="space-y-6">
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setIsPantryModalOpen(true)}
-            >
-              <Package className="w-4 h-4 mr-2" />
-              Use Pantry Items
-            </Button>
+          {/* Selected Ingredients Section - Moved outside of cards */}
+          {selectedIngredients.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Selected Ingredients</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {selectedIngredients.map((ingredient, index) => (
+                    <Badge key={index} variant="secondary" className="text-sm">
+                      {ingredient}
+                      <button
+                        onClick={() => removeIngredient(index)}
+                        className="ml-2 hover:text-red-600"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Main content grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Select Pantry Items Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Select Pantry Items</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsPantryModalOpen(true)}
+                  className="w-full"
+                >
+                  <Package className="w-4 h-4 mr-2" />
+                  Choose from Pantry
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Manual Ingredients Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Manually Add Ingredients</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <IngredientSelector
+                  userId={userId}
+                  selectedIngredients={selectedIngredients}
+                  onIngredientsChange={setSelectedIngredients}
+                />
+              </CardContent>
+            </Card>
           </div>
 
-          <IngredientSelector
-            userId={userId}
-            selectedIngredients={selectedIngredients}
-            onIngredientsChange={setSelectedIngredients}
-          />
-          
+          {/* AI Recipe Generator */}
           <AIRecipeGenerator
             selectedIngredients={selectedIngredients}
             onRecipeGenerated={handleRecipeGenerated}
           />
 
+          {/* Generated Recipe Display */}
           {generatedRecipe && (
             <Card>
               <CardHeader>
@@ -302,6 +351,15 @@ const RecipeGenerator = ({ userId, onNavigateToPantry }: RecipeGeneratorProps) =
               </CardContent>
             </Card>
           )}
+
+          {/* Pantry Item Selector Modal */}
+          <PantryItemSelector
+            userId={userId}
+            isOpen={isPantryModalOpen}
+            onClose={() => setIsPantryModalOpen(false)}
+            selectedIngredients={selectedIngredients}
+            onIngredientsChange={setSelectedIngredients}
+          />
         </div>
       )}
     </div>
