@@ -16,6 +16,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -409,6 +415,17 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
     .filter((c) => c.status === "available")
     .map((c) => c.name.toLowerCase());
 
+  // Helper to check if expiry is within 2 weeks
+  const isExpiringWithinTwoWeeks = (expiry: string | null) => {
+    if (!expiry) return false;
+    const expiryDate = new Date(expiry);
+    const today = new Date();
+    const twoWeeksFromNow = new Date(
+      today.getTime() + 14 * 24 * 60 * 60 * 1000,
+    );
+    return expiryDate <= twoWeeksFromNow;
+  };
+
   if (contributionsLoading) {
     return <div>Loading community contributions...</div>;
   }
@@ -434,6 +451,7 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
                   c.status === "available",
               );
               const CategoryIcon = getCategoryIcon(item.category);
+              const expiringSoon = isExpiringWithinTwoWeeks(item.expiry_date);
 
               return (
                 <Card key={item.id}>
@@ -442,27 +460,64 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
                           <h4 className="font-semibold">{item.name}</h4>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-sm mb-1 text-muted-foreground">
+                            {item.category
+                              ? `${
+                                  item.category.charAt(0).toUpperCase() +
+                                  item.category.slice(1)
+                                } · `
+                              : ""}
                             {item.quantity} {item.unit}
                           </p>
-                          {item.category && (
-                            <p className="text-xs text-muted-foreground capitalize">
-                              {item.category}
-                            </p>
+                          {item.expiry_date && (
+                            <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
+                              <Calendar className="w-3 h-3" />
+                              <span>
+                                Expires:{" "}
+                                {format(
+                                  new Date(item.expiry_date),
+                                  "MMM dd, yyyy",
+                                )}
+                              </span>
+                            </div>
                           )}
                         </div>
+
                         <CategoryIcon className="w-5 h-5 text-muted-foreground" />
                       </div>
 
                       <div className="flex gap-2">
                         {!isShared ? (
-                          <Button
-                            size="sm"
-                            onClick={() => handleSharePantryItem(item)}
-                            className="flex-1">
-                            <Share className="w-4 h-4" />
-                            Share Food
-                          </Button>
+                          expiringSoon ? (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="flex-1 cursor-not-allowed">
+                                    <Button
+                                      size="sm"
+                                      className="w-full"
+                                      disabled
+                                      tabIndex={-1}
+                                      type="button">
+                                      <Share className="w-4 h-4" />
+                                      Share Food
+                                    </Button>
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  Cannot share items expiring within 2 weeks.
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          ) : (
+                            <Button
+                              size="sm"
+                              onClick={() => handleSharePantryItem(item)}
+                              className="flex-1">
+                              <Share className="w-4 h-4" />
+                              Share Food
+                            </Button>
+                          )
                         ) : (
                           <>
                             <Button
