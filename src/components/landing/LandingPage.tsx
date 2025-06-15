@@ -1,7 +1,19 @@
-
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Package, Users, Utensils, Calendar, MapPin, Heart } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Calendar,
+  Heart,
+  MapPin,
+  Package,
+  Users,
+  Utensils,
+} from "lucide-react";
 
 interface LandingPageProps {
   onGetStarted?: () => void;
@@ -23,10 +35,14 @@ const LandingPage = ({ onGetStarted }: LandingPageProps) => {
             Welcome to <span className="text-green-800">FreshSavings</span>
           </h1>
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-            Your smart companion for managing your pantry, discovering recipes, and sharing food with your community.
-            Reduce waste, save money, and build connections through food.
+            Your smart companion for managing your pantry, discovering recipes,
+            and sharing food with your community. Reduce waste, save money, and
+            build connections through food.
           </p>
-          <Button size="lg" onClick={handleGetStarted} className="text-lg px-8 py-3">
+          <Button
+            size="lg"
+            onClick={handleGetStarted}
+            className="text-lg px-8 py-3">
             Get Started
           </Button>
         </div>
@@ -40,8 +56,9 @@ const LandingPage = ({ onGetStarted }: LandingPageProps) => {
             </CardHeader>
             <CardContent>
               <CardDescription className="text-center">
-                Keep track of your food inventory with expiry date tracking, categorization, and smart notifications.
-                Never let food go to waste again!
+                Keep track of your food inventory with expiry date tracking,
+                categorization, and smart notifications. Never let food go to
+                waste again!
               </CardDescription>
             </CardContent>
           </Card>
@@ -53,7 +70,9 @@ const LandingPage = ({ onGetStarted }: LandingPageProps) => {
             </CardHeader>
             <CardContent>
               <CardDescription className="text-center">
-                Get personalized recipe suggestions based on what you have in your pantry. Our AI creates delicious meals from your available ingredients.
+                Get personalized recipe suggestions based on what you have in
+                your pantry. Our AI creates delicious meals from your available
+                ingredients.
               </CardDescription>
             </CardContent>
           </Card>
@@ -65,7 +84,9 @@ const LandingPage = ({ onGetStarted }: LandingPageProps) => {
             </CardHeader>
             <CardContent>
               <CardDescription className="text-center">
-                Share excess food with your neighbors and discover available food in your community. Build connections while reducing food waste.
+                Share excess food with your neighbours and discover available
+                food in your community. Build connections while reducing food
+                waste.
               </CardDescription>
             </CardContent>
           </Card>
@@ -73,7 +94,9 @@ const LandingPage = ({ onGetStarted }: LandingPageProps) => {
 
         {/* How It Works Section */}
         <div className="text-center mb-16">
-          <h2 className="text-3xl font-bold text-gray-900 mb-8">How It Works</h2>
+          <h2 className="text-3xl font-bold text-gray-900 mb-8">
+            How It Works
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="flex flex-col items-center">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
@@ -81,27 +104,30 @@ const LandingPage = ({ onGetStarted }: LandingPageProps) => {
               </div>
               <h3 className="text-xl font-semibold mb-2">Add Your Items</h3>
               <p className="text-gray-600">
-                Easily add food items to your digital pantry with quantities, expiry dates, and categories.
+                Easily add food items to your digital pantry with quantities,
+                expiry dates, and categories.
               </p>
             </div>
-            
+
             <div className="flex flex-col items-center">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
                 <span className="text-2xl font-bold text-green-800">2</span>
               </div>
               <h3 className="text-xl font-semibold mb-2">Get Recipe Ideas</h3>
               <p className="text-gray-600">
-                Our AI suggests recipes based on your available ingredients, helping you create amazing meals.
+                Our AI suggests recipes based on your available ingredients,
+                helping you create amazing meals.
               </p>
             </div>
-            
+
             <div className="flex flex-col items-center">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
                 <span className="text-2xl font-bold text-green-800">3</span>
               </div>
               <h3 className="text-xl font-semibold mb-2">Share & Connect</h3>
               <p className="text-gray-600">
-                Share surplus food with your community and discover fresh ingredients from neighbors.
+                Share surplus food with your community and discover fresh
+                ingredients from neighbours.
               </p>
             </div>
           </div>
@@ -109,44 +135,54 @@ const LandingPage = ({ onGetStarted }: LandingPageProps) => {
 
         {/* Benefits Section */}
         <div className="bg-white rounded-2xl p-8 shadow-lg">
-          <h2 className="text-3xl font-bold text-center text-gray-900 mb-8">Why Choose FreshSavings?</h2>
+          <h2 className="text-3xl font-bold text-center text-gray-900 mb-8">
+            Why Choose FreshSavings?
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="flex items-start space-x-4">
               <Calendar className="w-8 h-8 text-green-800 mt-1" />
               <div>
-                <h3 className="text-lg font-semibold mb-2">Reduce Food Waste</h3>
+                <h3 className="text-lg font-semibold mb-2">
+                  Reduce Food Waste
+                </h3>
                 <p className="text-gray-600">
-                  Track expiry dates and get timely reminders to use ingredients before they spoil.
+                  Track expiry dates and get timely reminders to use ingredients
+                  before they spoil.
                 </p>
               </div>
             </div>
-            
+
             <div className="flex items-start space-x-4">
               <Heart className="w-8 h-8 text-green-800 mt-1" />
               <div>
                 <h3 className="text-lg font-semibold mb-2">Save Money</h3>
                 <p className="text-gray-600">
-                  Avoid buying duplicate items and make the most of what you already have at home.
+                  Avoid buying duplicate items and make the most of what you
+                  already have at home.
                 </p>
               </div>
             </div>
-            
+
             <div className="flex items-start space-x-4">
               <MapPin className="w-8 h-8 text-green-800 mt-1" />
               <div>
                 <h3 className="text-lg font-semibold mb-2">Build Community</h3>
                 <p className="text-gray-600">
-                  Connect with neighbors through food sharing and create a stronger local community.
+                  Connect with neighbours through food sharing and create a
+                  stronger local community.
                 </p>
               </div>
             </div>
-            
+
             <div className="flex items-start space-x-4">
               <Utensils className="w-8 h-8 text-green-800 mt-1" />
               <div>
-                <h3 className="text-lg font-semibold mb-2">Discover New Recipes</h3>
+                <h3 className="text-lg font-semibold mb-2">
+                  Discover New Recipes
+                </h3>
                 <p className="text-gray-600">
-                  Get creative with AI-generated recipes tailored to your available ingredients.
+                  Get creative with AI-generated recipes tailored to your
+                  available ingredients.
                 </p>
               </div>
             </div>
@@ -159,9 +195,13 @@ const LandingPage = ({ onGetStarted }: LandingPageProps) => {
             Ready to Transform Your Kitchen Experience?
           </h2>
           <p className="text-lg text-gray-600 mb-8">
-            Join thousands of users who are already saving money, reducing waste, and building community connections.
+            Join thousands of users who are already saving money, reducing
+            waste, and building community connections.
           </p>
-          <Button size="lg" onClick={handleGetStarted} className="text-lg px-8 py-3">
+          <Button
+            size="lg"
+            onClick={handleGetStarted}
+            className="text-lg px-8 py-3">
             Start Your Journey
           </Button>
         </div>

@@ -431,7 +431,7 @@ const RecipeGenerator = ({
                         </div>
 
                         {isSelected && (
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 mr-3">
                             <Button
                               variant="outline"
                               size="sm"

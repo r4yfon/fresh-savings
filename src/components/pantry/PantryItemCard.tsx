@@ -89,7 +89,7 @@ const PantryItemCard = ({
                 }`}>
                 <Calendar className="w-3 h-3" />
                 <span>
-                  Expires: {format(new Date(item.expiry_date), "MMM dd, yyyy")}
+                  Expires: {format(new Date(item.expiry_date), "dd MMM yyyy")}
                 </span>
               </div>
             )}

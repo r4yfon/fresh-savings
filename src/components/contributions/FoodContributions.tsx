@@ -476,7 +476,7 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
                                 Expires:{" "}
                                 {format(
                                   new Date(item.expiry_date),
-                                  "MMM dd, yyyy",
+                                  "dd MMM yyyy",
                                 )}
                               </span>
                             </div>
@@ -616,7 +616,7 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
                               Until:{" "}
                               {format(
                                 new Date(contribution.available_until),
-                                "MMM dd, yyyy",
+                                "dd MMM yyyy",
                               )}
                             </span>
                           </div>
@@ -625,7 +625,7 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
                           Shared:{" "}
                           {format(
                             new Date(contribution.created_at),
-                            "MMM dd, yyyy",
+                            "dd MMM yyyy",
                           )}
                         </p>
                       </div>
