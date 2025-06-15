@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, MapPin, Calendar, Users } from "lucide-react";
+import { Plus, MapPin, Calendar, Users, Package } from "lucide-react";
 import { format } from "date-fns";
 
 interface FoodContribution {
@@ -28,20 +28,28 @@ interface FoodContribution {
   created_at: string;
 }
 
+interface PantryItem {
+  id: string;
+  name: string;
+  quantity: number;
+  unit: string;
+  expiry_date: string | null;
+  category: string | null;
+  created_at: string;
+}
+
 interface FoodContributionsProps {
   userId: string;
 }
 
 const FoodContributions = ({ userId }: FoodContributionsProps) => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [selectedPantryItem, setSelectedPantryItem] = useState<string>("");
   const [formData, setFormData] = useState({
-    name: "",
     description: "",
     quantity: 1,
-    unit: "piece",
     location: "",
     available_until: "",
-    category: "",
   });
   
   const { toast } = useToast();
@@ -75,49 +83,90 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
     },
   });
 
+  const { data: pantryItems = [] } = useQuery({
+    queryKey: ['pantry-items', userId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('pantry_items')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data as PantryItem[];
+    },
+  });
+
   const addContributionMutation = useMutation({
-    mutationFn: async (newContribution: typeof formData) => {
+    mutationFn: async (newContribution: { pantryItemId: string; description: string; quantity: number; location: string; available_until: string }) => {
+      const selectedItem = pantryItems.find(item => item.id === newContribution.pantryItemId);
+      if (!selectedItem) throw new Error("Selected item not found");
+      
+      if (newContribution.quantity > selectedItem.quantity) {
+        throw new Error("Cannot share more than what you have in inventory");
+      }
+
       const { data, error } = await supabase
         .from('food_contributions')
         .insert({
           contributor_id: userId,
-          name: newContribution.name,
+          name: selectedItem.name,
           description: newContribution.description || null,
           quantity: newContribution.quantity,
-          unit: newContribution.unit,
+          unit: selectedItem.unit,
           location: newContribution.location || null,
           available_until: newContribution.available_until || null,
-          category: newContribution.category || null,
+          category: selectedItem.category || null,
           status: 'available',
         })
         .select()
         .single();
       
       if (error) throw error;
+
+      // Update pantry item quantity
+      const newQuantity = selectedItem.quantity - newContribution.quantity;
+      if (newQuantity === 0) {
+        // Remove item if quantity becomes 0
+        const { error: deleteError } = await supabase
+          .from('pantry_items')
+          .delete()
+          .eq('id', newContribution.pantryItemId);
+        
+        if (deleteError) throw deleteError;
+      } else {
+        // Update quantity
+        const { error: updateError } = await supabase
+          .from('pantry_items')
+          .update({ quantity: newQuantity })
+          .eq('id', newContribution.pantryItemId);
+        
+        if (updateError) throw updateError;
+      }
+      
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['food-contributions'] });
       queryClient.invalidateQueries({ queryKey: ['my-contributions'] });
+      queryClient.invalidateQueries({ queryKey: ['pantry-items'] });
       setIsAddDialogOpen(false);
+      setSelectedPantryItem("");
       setFormData({
-        name: "",
         description: "",
         quantity: 1,
-        unit: "piece",
         location: "",
         available_until: "",
-        category: "",
       });
       toast({
         title: "Success",
         description: "Food contribution added successfully!",
       });
     },
-    onError: () => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
-        description: "Failed to add food contribution",
+        description: error.message || "Failed to add food contribution",
         variant: "destructive",
       });
     },
@@ -144,7 +193,19 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    addContributionMutation.mutate(formData);
+    if (!selectedPantryItem) {
+      toast({
+        title: "Error",
+        description: "Please select an item from your pantry",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    addContributionMutation.mutate({
+      pantryItemId: selectedPantryItem,
+      ...formData
+    });
   };
 
   const handleClaim = (id: string) => {
@@ -155,6 +216,16 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
     updateStatusMutation.mutate({ id, status: 'expired' });
   };
 
+  const handleRedirectToPantry = () => {
+    // This will switch to the pantry tab
+    const pantryTab = document.querySelector('[value="pantry"]') as HTMLElement;
+    if (pantryTab) {
+      pantryTab.click();
+    }
+  };
+
+  const selectedItem = pantryItems.find(item => item.id === selectedPantryItem);
+
   if (isLoading) {
     return <div>Loading food contributions...</div>;
   }
@@ -163,121 +234,118 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Community Food Sharing</h2>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              Share Food
+        <div className="flex gap-2">
+          {pantryItems.length === 0 && (
+            <Button variant="outline" onClick={handleRedirectToPantry}>
+              <Package className="w-4 h-4 mr-2" />
+              Add to Pantry First
             </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Share Food with Community</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Food Item</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Any additional details..."
-                />
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="quantity">Quantity</Label>
-                  <Input
-                    id="quantity"
-                    type="number"
-                    min="1"
-                    value={formData.quantity}
-                    onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) })}
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="unit">Unit</Label>
-                  <Select
-                    value={formData.unit}
-                    onValueChange={(value) => setFormData({ ...formData, unit: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="piece">Piece</SelectItem>
-                      <SelectItem value="kg">Kg</SelectItem>
-                      <SelectItem value="g">Grams</SelectItem>
-                      <SelectItem value="l">Liters</SelectItem>
-                      <SelectItem value="ml">Milliliters</SelectItem>
-                      <SelectItem value="package">Package</SelectItem>
-                      <SelectItem value="bag">Bag</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="location">Location</Label>
-                <Input
-                  id="location"
-                  value={formData.location}
-                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  placeholder="Where can people pick this up?"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="category">Category</Label>
-                <Select
-                  value={formData.category}
-                  onValueChange={(value) => setFormData({ ...formData, category: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="vegetables">Vegetables</SelectItem>
-                    <SelectItem value="fruits">Fruits</SelectItem>
-                    <SelectItem value="dairy">Dairy</SelectItem>
-                    <SelectItem value="meat">Meat</SelectItem>
-                    <SelectItem value="grains">Grains</SelectItem>
-                    <SelectItem value="prepared">Prepared Food</SelectItem>
-                    <SelectItem value="canned">Canned Goods</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="available_until">Available Until</Label>
-                <Input
-                  id="available_until"
-                  type="date"
-                  value={formData.available_until}
-                  onChange={(e) => setFormData({ ...formData, available_until: e.target.value })}
-                />
-              </div>
-              
-              <Button type="submit" className="w-full" disabled={addContributionMutation.isPending}>
-                {addContributionMutation.isPending ? "Sharing..." : "Share Food"}
+          )}
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogTrigger asChild>
+              <Button disabled={pantryItems.length === 0}>
+                <Plus className="w-4 h-4 mr-2" />
+                Share Food
               </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Share Food from Your Pantry</DialogTitle>
+              </DialogHeader>
+              {pantryItems.length === 0 ? (
+                <div className="text-center py-4">
+                  <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground mb-4">You need items in your pantry before you can share food.</p>
+                  <Button onClick={handleRedirectToPantry}>
+                    <Package className="w-4 h-4 mr-2" />
+                    Go to Pantry
+                  </Button>
+                </div>
+              ) : (
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="pantry-item">Select Item from Pantry</Label>
+                    <Select
+                      value={selectedPantryItem}
+                      onValueChange={setSelectedPantryItem}
+                      required
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose an item from your pantry" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {pantryItems.map((item) => (
+                          <SelectItem key={item.id} value={item.id}>
+                            {item.name} ({item.quantity} {item.unit})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  {selectedItem && (
+                    <div className="p-3 bg-muted rounded-lg">
+                      <p className="text-sm"><strong>Available:</strong> {selectedItem.quantity} {selectedItem.unit}</p>
+                      {selectedItem.category && (
+                        <p className="text-sm"><strong>Category:</strong> {selectedItem.category}</p>
+                      )}
+                      {selectedItem.expiry_date && (
+                        <p className="text-sm"><strong>Expires:</strong> {format(new Date(selectedItem.expiry_date), 'MMM dd, yyyy')}</p>
+                      )}
+                    </div>
+                  )}
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="quantity">Quantity to Share</Label>
+                    <Input
+                      id="quantity"
+                      type="number"
+                      min="1"
+                      max={selectedItem?.quantity || 1}
+                      value={formData.quantity}
+                      onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) || 1 })}
+                      required
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="description">Description (Optional)</Label>
+                    <Textarea
+                      id="description"
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      placeholder="Any additional details..."
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="location">Pickup Location</Label>
+                    <Input
+                      id="location"
+                      value={formData.location}
+                      onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                      placeholder="Where can people pick this up?"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="available_until">Available Until</Label>
+                    <Input
+                      id="available_until"
+                      type="date"
+                      value={formData.available_until}
+                      onChange={(e) => setFormData({ ...formData, available_until: e.target.value })}
+                    />
+                  </div>
+                  
+                  <Button type="submit" className="w-full" disabled={addContributionMutation.isPending || !selectedPantryItem}>
+                    {addContributionMutation.isPending ? "Sharing..." : "Share Food"}
+                  </Button>
+                </form>
+              )}
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <Tabs defaultValue="available" className="w-full">
