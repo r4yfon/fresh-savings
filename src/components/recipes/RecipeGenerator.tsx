@@ -67,7 +67,7 @@ const RecipeGenerator = ({ userId }: RecipeGeneratorProps) => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('pantry_items')
-        .select('name')
+        .select('name, quantity, unit')
         .order('name');
       
       if (error) throw error;
@@ -178,13 +178,18 @@ const RecipeGenerator = ({ userId }: RecipeGeneratorProps) => {
       return;
     }
 
-    const availableIngredients = pantryItems.map(item => item.name).join('\n');
-    setFormData({
-      ...formData,
-      title: "Recipe from my pantry",
-      ingredients: availableIngredients,
+    // Format pantry items with quantities and units like the ingredient selector does
+    const formattedIngredients = pantryItems.map(item => 
+      `${item.quantity || 1} ${item.unit || 'piece'}${item.quantity > 1 && item.unit !== 'piece' ? 's' : ''} ${item.name}`
+    );
+    
+    // Set the selected ingredients to trigger the AI recipe generator
+    setSelectedIngredients(formattedIngredients);
+    
+    toast({
+      title: "Pantry items selected",
+      description: `Selected ${pantryItems.length} items from your pantry. You can now generate a recipe using AI!`,
     });
-    setIsAddDialogOpen(true);
   };
 
   if (isLoading) {
