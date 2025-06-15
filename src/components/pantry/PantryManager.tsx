@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Calendar } from "lucide-react";
+import { Plus, Trash2, Calendar, Settings } from "lucide-react";
 import { format } from "date-fns";
 
 interface PantryItem {
@@ -30,6 +30,7 @@ interface PantryManagerProps {
 const PantryManager = ({ userId }: PantryManagerProps) => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const [isManageMode, setIsManageMode] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     quantity: 1,
@@ -218,7 +219,14 @@ const PantryManager = ({ userId }: PantryManagerProps) => {
         <div className="flex gap-2">
           {pantryItems.length > 0 && (
             <>
-              {selectedItems.length > 0 && (
+              <Button
+                variant="outline"
+                onClick={() => setIsManageMode(!isManageMode)}
+              >
+                <Settings className="w-4 h-4 mr-2" />
+                Manage Pantry
+              </Button>
+              {isManageMode && selectedItems.length > 0 && (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button variant="destructive" disabled={bulkDeleteMutation.isPending}>
@@ -235,30 +243,32 @@ const PantryManager = ({ userId }: PantryManagerProps) => {
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleBulkDelete}>Delete</AlertDialogAction>
+                      <AlertDialogAction onClick={handleBulkDelete} className="bg-red-600 hover:bg-red-700">Delete</AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
               )}
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive" disabled={clearPantryMutation.isPending}>
-                    Clear All Pantry
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Clear Entire Pantry</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Are you sure you want to clear your entire pantry? This will delete all {pantryItems.length} items and cannot be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleClearPantry}>Clear All</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              {isManageMode && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" disabled={clearPantryMutation.isPending}>
+                      Clear All Pantry
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Clear Entire Pantry</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to clear your entire pantry? This will delete all {pantryItems.length} items and cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleClearPantry} className="bg-red-600 hover:bg-red-700">Clear All</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
             </>
           )}
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
@@ -370,34 +380,38 @@ const PantryManager = ({ userId }: PantryManagerProps) => {
         </Card>
       ) : (
         <>
-          <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="select-all"
-                checked={selectedItems.length === pantryItems.length}
-                onCheckedChange={handleSelectAll}
-              />
-              <Label htmlFor="select-all" className="text-sm font-medium">
-                Select All ({pantryItems.length} items)
-              </Label>
+          {isManageMode && (
+            <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="select-all"
+                  checked={selectedItems.length === pantryItems.length}
+                  onCheckedChange={handleSelectAll}
+                />
+                <Label htmlFor="select-all" className="text-sm font-medium">
+                  Select All ({pantryItems.length} items)
+                </Label>
+              </div>
+              {selectedItems.length > 0 && (
+                <p className="text-sm text-muted-foreground">
+                  {selectedItems.length} item(s) selected
+                </p>
+              )}
             </div>
-            {selectedItems.length > 0 && (
-              <p className="text-sm text-muted-foreground">
-                {selectedItems.length} item(s) selected
-              </p>
-            )}
-          </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {pantryItems.map((item) => (
               <Card key={item.id} className={`${isExpiringSoon(item.expiry_date) ? 'border-red-500' : ''}`}>
                 <CardHeader className="pb-3">
                   <div className="flex justify-between items-start">
                     <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`item-${item.id}`}
-                        checked={selectedItems.includes(item.id)}
-                        onCheckedChange={(checked) => handleItemSelection(item.id, checked as boolean)}
-                      />
+                      {isManageMode && (
+                        <Checkbox
+                          id={`item-${item.id}`}
+                          checked={selectedItems.includes(item.id)}
+                          onCheckedChange={(checked) => handleItemSelection(item.id, checked as boolean)}
+                        />
+                      )}
                       <CardTitle className="text-lg">{item.name}</CardTitle>
                     </div>
                     <Button

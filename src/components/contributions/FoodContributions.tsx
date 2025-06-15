@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,8 +9,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, MapPin, Calendar, Users, Package } from "lucide-react";
+import { Plus, MapPin, Calendar, Users, Package, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 
 interface FoodContribution {
@@ -191,6 +191,33 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
     },
   });
 
+  const deleteContributionMutation = useMutation({
+    mutationFn: async (contributionId: string) => {
+      const { error } = await supabase
+        .from('food_contributions')
+        .delete()
+        .eq('id', contributionId)
+        .eq('contributor_id', userId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['food-contributions'] });
+      queryClient.invalidateQueries({ queryKey: ['my-contributions'] });
+      toast({
+        title: "Success",
+        description: "Food contribution removed successfully!",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to remove food contribution",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedPantryItem) {
@@ -214,6 +241,10 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
 
   const handleMarkAsExpired = (id: string) => {
     updateStatusMutation.mutate({ id, status: 'expired' });
+  };
+
+  const handleTakeDown = (id: string) => {
+    deleteContributionMutation.mutate(id);
   };
 
   const handleRedirectToPantry = () => {
@@ -429,13 +460,38 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
                   <CardHeader className="pb-3">
                     <div className="flex justify-between items-start">
                       <CardTitle className="text-lg">{contribution.name}</CardTitle>
-                      <span className={`px-2 py-1 rounded text-xs ${
-                        contribution.status === 'available' ? 'bg-green-100 text-green-800' :
-                        contribution.status === 'claimed' ? 'bg-blue-100 text-blue-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {contribution.status}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-1 rounded text-xs ${
+                          contribution.status === 'available' ? 'bg-green-100 text-green-800' :
+                          contribution.status === 'claimed' ? 'bg-blue-100 text-blue-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {contribution.status}
+                        </span>
+                        {contribution.status === 'available' && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Take Down Food Contribution</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to remove this food contribution? This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleTakeDown(contribution.id)} className="bg-red-600 hover:bg-red-700">
+                                  Take Down
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent>
