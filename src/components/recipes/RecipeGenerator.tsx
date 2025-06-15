@@ -473,31 +473,7 @@ const RecipeGenerator = ({ userId, onNavigateToPantry }: RecipeGeneratorProps) =
             </Card>
           </div>
 
-          {/* Simple AI Recipe Generator Button - Remove card styling */}
-          {selectedIngredients.length > 0 && (
-            <div className="flex justify-center">
-              <Button 
-                onClick={handleGenerateRecipe}
-                disabled={selectedIngredients.length === 0 || generateRecipeMutation.isPending}
-                className="w-full"
-                size="lg"
-              >
-                {generateRecipeMutation.isPending ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Generating Recipe...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    Generate Recipe ({selectedIngredients.length} ingredients)
-                  </>
-                )}
-              </Button>
-            </div>
-          )}
-
-          {/* Selected Ingredients Section - moved here to prevent jumpiness */}
+          {/* Selected Ingredients Section - moved above generate button */}
           {selectedIngredients.length > 0 && (
             <Card>
               <CardHeader>
@@ -519,6 +495,30 @@ const RecipeGenerator = ({ userId, onNavigateToPantry }: RecipeGeneratorProps) =
                 </div>
               </CardContent>
             </Card>
+          )}
+
+          {/* Generate Recipe Button - moved below selected ingredients */}
+          {selectedIngredients.length > 0 && (
+            <div className="flex justify-center">
+              <Button 
+                onClick={handleGenerateRecipe}
+                disabled={selectedIngredients.length === 0 || generateRecipeMutation.isPending}
+                className="w-full"
+                size="lg"
+              >
+                {generateRecipeMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Generating Recipe...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Generate Recipe ({selectedIngredients.length} ingredients)
+                  </>
+                )}
+              </Button>
+            </div>
           )}
 
           {/* Generated Recipe Display */}

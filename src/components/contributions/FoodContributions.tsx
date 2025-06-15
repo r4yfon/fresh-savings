@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -9,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, MapPin, Calendar, Package, Users, Share, Edit, StopCircle, Apple, Beef, Wheat, Milk, Archive, Cookie, Utensils, Snowflake, Check } from "lucide-react";
+import { Plus, MapPin, Calendar, Users, Check, Share2 } from "lucide-react";
 import { format } from "date-fns";
 
 interface FoodContribution {
@@ -17,21 +18,13 @@ interface FoodContribution {
   name: string;
   quantity: number;
   unit: string;
+  category: string | null;
   description: string | null;
   location: string | null;
   available_until: string | null;
   status: string;
-  category: string | null;
-  contributor_id: string;
   created_at: string;
-}
-
-interface PantryItem {
-  id: string;
-  name: string;
-  quantity: number;
-  unit: string;
-  category: string | null;
+  contributor_id: string;
 }
 
 interface FoodContributionsProps {
@@ -39,28 +32,24 @@ interface FoodContributionsProps {
 }
 
 const FoodContributions = ({ userId }: FoodContributionsProps) => {
-  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [editingContribution, setEditingContribution] = useState<FoodContribution | null>(null);
-  const [selectedPantryItem, setSelectedPantryItem] = useState<PantryItem | null>(null);
-  const [shareQuantity, setShareQuantity] = useState(1);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     quantity: 1,
     unit: "pieces",
+    category: "",
     description: "",
     location: "",
     available_until: "",
-    category: "",
   });
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Get tomorrow's date as default
-  const getTomorrowDate = () => {
+  // Auto-fill available_until date to 1 week from now
+  const getOneWeekFromNow = () => {
     const date = new Date();
-    date.setDate(date.getDate() + 1);
+    date.setDate(date.getDate() + 7);
     return date.toISOString().split('T')[0];
   };
 
@@ -69,31 +58,7 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
     return str.toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
   };
 
-  // Get category icon
-  const getCategoryIcon = (category: string | null) => {
-    switch (category?.toLowerCase()) {
-      case 'fruits':
-        return Apple;
-      case 'vegetables':
-        return Apple;
-      case 'meat':
-        return Beef;
-      case 'grains':
-        return Wheat;
-      case 'dairy':
-        return Milk;
-      case 'canned':
-        return Archive;
-      case 'baked-goods':
-        return Cookie;
-      case 'frozen':
-        return Snowflake;
-      default:
-        return Utensils;
-    }
-  };
-
-  const { data: contributions = [], isLoading: contributionsLoading } = useQuery({
+  const { data: contributions = [], isLoading } = useQuery({
     queryKey: ['food-contributions'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -104,20 +69,6 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
       
       if (error) throw error;
       return data as FoodContribution[];
-    },
-  });
-
-  const { data: pantryItems = [] } = useQuery({
-    queryKey: ['pantry-items', userId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('pantry_items')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      return data as PantryItem[];
     },
   });
 
@@ -136,18 +87,18 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
   });
 
   const addContributionMutation = useMutation({
-    mutationFn: async (newContribution: typeof formData & { shareQuantity: number }) => {
+    mutationFn: async (newContribution: typeof formData) => {
       const { data, error } = await supabase
         .from('food_contributions')
         .insert({
           contributor_id: userId,
           name: capitalizeWords(newContribution.name),
-          quantity: newContribution.shareQuantity,
+          quantity: newContribution.quantity,
           unit: newContribution.unit,
+          category: newContribution.category || null,
           description: newContribution.description || null,
           location: newContribution.location || null,
           available_until: newContribution.available_until || null,
-          category: newContribution.category || null,
           status: 'available',
         })
         .select()
@@ -159,50 +110,61 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['food-contributions'] });
       queryClient.invalidateQueries({ queryKey: ['my-food-contributions'] });
-      setIsShareDialogOpen(false);
-      setSelectedPantryItem(null);
-      setShareQuantity(1);
-      setFormData({ name: "", quantity: 1, unit: "pieces", description: "", location: "", available_until: "", category: "" });
+      setIsAddDialogOpen(false);
+      setFormData({
+        name: "",
+        quantity: 1,
+        unit: "pieces",
+        category: "",
+        description: "",
+        location: "",
+        available_until: "",
+      });
       toast({
         title: "Success",
         description: "Food item shared with the community!",
       });
     },
-    onError: () => {
+    onError: (error) => {
       toast({
         title: "Error",
         description: "Failed to share food item",
         variant: "destructive",
       });
+      console.error('Error adding contribution:', error);
     },
   });
 
-  const updateContributionMutation = useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: Partial<FoodContribution> }) => {
+  const collectContributionMutation = useMutation({
+    mutationFn: async (contributionId: string) => {
+      console.info('Attempting to collect contribution:', contributionId);
       const { data, error } = await supabase
         .from('food_contributions')
-        .update(updates)
-        .eq('id', id)
+        .update({ status: 'collected' })
+        .eq('id', contributionId)
         .select()
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error collecting contribution:', error);
+        throw error;
+      }
+      console.info('Successfully collected contribution:', data);
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['food-contributions'] });
       queryClient.invalidateQueries({ queryKey: ['my-food-contributions'] });
-      setIsEditDialogOpen(false);
-      setEditingContribution(null);
       toast({
         title: "Success",
-        description: "Food item updated successfully!",
+        description: "Food item collected successfully!",
       });
     },
-    onError: () => {
+    onError: (error) => {
+      console.error('Collect mutation error:', error);
       toast({
         title: "Error",
-        description: "Failed to update food item",
+        description: "Failed to collect food item",
         variant: "destructive",
       });
     },
@@ -210,19 +172,21 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
 
   const stopSharingMutation = useMutation({
     mutationFn: async (contributionId: string) => {
-      console.log('Attempting to stop sharing contribution:', contributionId);
+      console.info('handleStopSharing called with contributionId:', contributionId);
+      console.info('Attempting to stop sharing contribution:', contributionId);
       const { data, error } = await supabase
         .from('food_contributions')
         .update({ status: 'unavailable' })
         .eq('id', contributionId)
         .eq('contributor_id', userId)
-        .select();
+        .select()
+        .single();
       
       if (error) {
         console.error('Error stopping sharing:', error);
         throw error;
       }
-      console.log('Successfully stopped sharing:', data);
+      console.info('Successfully stopped sharing contribution:', data);
       return data;
     },
     onSuccess: () => {
@@ -237,129 +201,39 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
       console.error('Stop sharing mutation error:', error);
       toast({
         title: "Error",
-        description: "Failed to stop sharing",
+        description: "Failed to stop sharing food item",
         variant: "destructive",
       });
     },
   });
 
-  const removePantryItemMutation = useMutation({
-    mutationFn: async (itemId: string) => {
-      const { error } = await supabase
-        .from('pantry_items')
-        .delete()
-        .eq('id', itemId)
-        .eq('user_id', userId);
-      
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['pantry-items'] });
-      toast({
-        title: "Success",
-        description: "Item removed from pantry",
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to remove item from pantry",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const handleShareSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (selectedPantryItem && shareQuantity > selectedPantryItem.quantity) {
-      toast({
-        title: "Error",
-        description: "Cannot share more than you have in your pantry",
-        variant: "destructive",
-      });
-      return;
-    }
-    addContributionMutation.mutate({ ...formData, shareQuantity });
+    addContributionMutation.mutate(formData);
   };
 
-  const handleEditSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (editingContribution && selectedPantryItem) {
-      const maxAllowed = selectedPantryItem.quantity + editingContribution.quantity;
-      if (formData.quantity > maxAllowed) {
-        toast({
-          title: "Error",
-          description: `Cannot share more than ${maxAllowed} ${formData.unit}`,
-          variant: "destructive",
-        });
-        return;
-      }
-    }
-    
-    if (editingContribution) {
-      updateContributionMutation.mutate({
-        id: editingContribution.id,
-        updates: {
-          name: capitalizeWords(formData.name),
-          quantity: formData.quantity,
-          unit: formData.unit,
-          description: formData.description || null,
-          location: formData.location || null,
-          available_until: formData.available_until || null,
-          category: formData.category || null,
-        }
-      });
-    }
-  };
-
-  const handleSharePantryItem = (item: PantryItem) => {
-    setSelectedPantryItem(item);
-    setShareQuantity(Math.min(1, item.quantity));
-    setFormData({
-      name: item.name,
-      quantity: item.quantity,
-      unit: item.unit,
-      description: "",
-      location: "",
-      available_until: getTomorrowDate(),
-      category: item.category || "",
-    });
-    setIsShareDialogOpen(true);
-  };
-
-  const handleEditContribution = (contribution: FoodContribution) => {
-    setEditingContribution(contribution);
-    const relatedPantryItem = pantryItems.find(
-      item => item.name.toLowerCase() === contribution.name.toLowerCase()
-    );
-    setSelectedPantryItem(relatedPantryItem || null);
-    setFormData({
-      name: contribution.name,
-      quantity: contribution.quantity,
-      unit: contribution.unit,
-      description: contribution.description || "",
-      location: contribution.location || "",
-      available_until: contribution.available_until || "",
-      category: contribution.category || "",
-    });
-    setIsEditDialogOpen(true);
+  const handleCollectItem = (contributionId: string) => {
+    collectContributionMutation.mutate(contributionId);
   };
 
   const handleStopSharing = (contributionId: string) => {
-    console.log('handleStopSharing called with contributionId:', contributionId);
     stopSharingMutation.mutate(contributionId);
   };
 
-  const handleRemoveFromPantry = (item: PantryItem) => {
-    removePantryItemMutation.mutate(item.id);
+  const handleOpenAddDialog = () => {
+    setFormData({
+      name: "",
+      quantity: 1,
+      unit: "pieces",
+      category: "",
+      description: "",
+      location: "",
+      available_until: getOneWeekFromNow(),
+    });
+    setIsAddDialogOpen(true);
   };
 
-  // Get shared pantry item IDs
-  const sharedPantryItemNames = myContributions
-    .filter(c => c.status === 'available')
-    .map(c => c.name.toLowerCase());
-
-  if (contributionsLoading) {
+  if (isLoading) {
     return <div>Loading community contributions...</div>;
   }
 
@@ -367,93 +241,124 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Community Kitchen</h2>
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <DialogTrigger asChild>
+            <Button onClick={handleOpenAddDialog}>
+              <Plus className="w-4 h-4 mr-2" />
+              Share Food
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Share Food with Community</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Food Item Name</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  required
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="quantity">Quantity</Label>
+                  <Input
+                    id="quantity"
+                    type="number"
+                    min="1"
+                    value={formData.quantity}
+                    onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) })}
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="unit">Unit</Label>
+                  <Select
+                    value={formData.unit}
+                    onValueChange={(value) => setFormData({ ...formData, unit: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pieces">Pieces</SelectItem>
+                      <SelectItem value="kilograms">Kilograms</SelectItem>
+                      <SelectItem value="litres">Litres</SelectItem>
+                      <SelectItem value="servings">Servings</SelectItem>
+                      <SelectItem value="portions">Portions</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="category">Category</Label>
+                <Select
+                  value={formData.category}
+                  onValueChange={(value) => setFormData({ ...formData, category: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="vegetables">Vegetables</SelectItem>
+                    <SelectItem value="fruits">Fruits</SelectItem>
+                    <SelectItem value="dairy">Dairy</SelectItem>
+                    <SelectItem value="meat">Meat</SelectItem>
+                    <SelectItem value="grains">Grains</SelectItem>
+                    <SelectItem value="prepared">Prepared Food</SelectItem>
+                    <SelectItem value="baked">Baked Goods</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="description">Description (Optional)</Label>
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Add any additional details..."
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="location">Pickup Location (Optional)</Label>
+                <Input
+                  id="location"
+                  value={formData.location}
+                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                  placeholder="Where can people pick this up?"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="available_until">Available Until (Optional)</Label>
+                <Input
+                  id="available_until"
+                  type="date"
+                  value={formData.available_until}
+                  onChange={(e) => setFormData({ ...formData, available_until: e.target.value })}
+                />
+              </div>
+              
+              <Button type="submit" className="w-full" disabled={addContributionMutation.isPending}>
+                {addContributionMutation.isPending ? "Sharing..." : "Share with Community"}
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      {/* My Pantry Items Section */}
-      {pantryItems.length > 0 && (
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Share from Your Pantry</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {pantryItems.map((item) => {
-              const isShared = sharedPantryItemNames.includes(item.name.toLowerCase());
-              const sharedContribution = myContributions.find(
-                c => c.name.toLowerCase() === item.name.toLowerCase() && c.status === 'available'
-              );
-              const CategoryIcon = getCategoryIcon(item.category);
-              
-              return (
-                <Card key={item.id}>
-                  <CardContent className="p-4">
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <h4 className="font-semibold">{item.name}</h4>
-                          <p className="text-sm text-muted-foreground">
-                            {item.quantity} {item.unit}
-                          </p>
-                          {item.category && (
-                            <p className="text-xs text-muted-foreground capitalize">
-                              {item.category}
-                            </p>
-                          )}
-                        </div>
-                        <CategoryIcon className="w-5 h-5 text-muted-foreground" />
-                      </div>
-                      
-                      <div className="flex gap-2">
-                        {!isShared ? (
-                          <Button
-                            size="sm"
-                            onClick={() => handleSharePantryItem(item)}
-                            className="flex-1"
-                          >
-                            <Share className="w-4 h-4 mr-2" />
-                            Share Food
-                          </Button>
-                        ) : (
-                          <>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => sharedContribution && handleEditContribution(sharedContribution)}
-                              className="flex-1"
-                            >
-                              <Edit className="w-4 h-4 mr-2" />
-                              Edit
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => sharedContribution && handleStopSharing(sharedContribution.id)}
-                              className="flex-1"
-                              disabled={stopSharingMutation.isPending}
-                            >
-                              <StopCircle className="w-4 h-4 mr-2" />
-                              Stop Sharing
-                            </Button>
-                            <Button
-                              size="sm"
-                              className="flex-1 bg-green-800 hover:bg-green-900 text-white"
-                              onClick={() => handleRemoveFromPantry(item)}
-                            >
-                              <Check className="w-4 h-4 mr-2" />
-                              Item Collected
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Available Food Items */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold">Available Food Items</h3>
+      {/* Available Contributions */}
+      <div>
+        <h3 className="text-lg font-semibold mb-4">Available Food Items</h3>
         {contributions.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-8">
@@ -464,286 +369,143 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {contributions.map((contribution) => {
-              const CategoryIcon = getCategoryIcon(contribution.category);
-              return (
-                <Card key={contribution.id}>
-                  <CardContent className="p-4">
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <h4 className="font-semibold">{contribution.name}</h4>
-                          <p className="text-sm text-muted-foreground">
-                            {contribution.quantity} {contribution.unit}
-                          </p>
-                          {contribution.category && (
-                            <p className="text-xs text-muted-foreground capitalize">
-                              {contribution.category}
-                            </p>
-                          )}
-                        </div>
-                        <CategoryIcon className="w-5 h-5 text-muted-foreground" />
-                      </div>
+            {contributions.map((contribution) => (
+              <Card key={contribution.id}>
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-2 flex-1">
+                      <h4 className="font-semibold text-lg">{contribution.name}</h4>
                       
+                      {/* Updated layout: Category · Quantity */}
+                      <p className="text-sm text-muted-foreground">
+                        {contribution.category ? `${contribution.category.charAt(0).toUpperCase() + contribution.category.slice(1)} · ` : ''}
+                        {contribution.quantity} {contribution.unit}
+                      </p>
+
                       {contribution.description && (
                         <p className="text-sm">{contribution.description}</p>
                       )}
-                      
-                      <div className="space-y-1">
-                        {contribution.location && (
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <MapPin className="w-3 h-3" />
-                            <span>{contribution.location}</span>
-                          </div>
-                        )}
-                        {contribution.available_until && (
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Calendar className="w-3 h-3" />
-                            <span>Until: {format(new Date(contribution.available_until), 'MMM dd, yyyy')}</span>
-                          </div>
-                        )}
-                        <p className="text-xs text-muted-foreground">
-                          Shared: {format(new Date(contribution.created_at), 'MMM dd, yyyy')}
-                        </p>
+
+                      {contribution.location && (
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <MapPin className="w-3 h-3" />
+                          <span>{contribution.location}</span>
+                        </div>
+                      )}
+
+                      {contribution.available_until && (
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Calendar className="w-3 h-3" />
+                          <span>Until: {format(new Date(contribution.available_until), 'MMM dd, yyyy')}</span>
+                        </div>
+                      )}
+
+                      {/* Added icon for shared date */}
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Share2 className="w-3 h-3" />
+                        <span>Shared: {format(new Date(contribution.created_at), 'MMM dd, yyyy')}</span>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+
+                    {/* Only show collect button for items not contributed by current user */}
+                    {contribution.contributor_id !== userId && (
+                      <Button
+                        size="sm"
+                        onClick={() => handleCollectItem(contribution.id)}
+                        disabled={collectContributionMutation.isPending}
+                        className="bg-green-700 hover:bg-green-800 ml-4"
+                      >
+                        <Check className="w-4 h-4 mr-1" />
+                        Collect
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         )}
       </div>
 
-      {/* Share Dialog */}
-      <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Share Food with Community</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleShareSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Food Item</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                required
-                readOnly
-              />
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="shareQuantity">Quantity to Share</Label>
-                <Input
-                  id="shareQuantity"
-                  type="number"
-                  min="1"
-                  max={selectedPantryItem?.quantity || 1}
-                  value={shareQuantity}
-                  onChange={(e) => setShareQuantity(parseInt(e.target.value))}
-                  required
-                />
-                <p className="text-xs text-muted-foreground">
-                  Available: {selectedPantryItem?.quantity || 0} {formData.unit}
-                </p>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="unit">Unit</Label>
-                <Select
-                  value={formData.unit}
-                  onValueChange={(value) => setFormData({ ...formData, unit: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pieces">Pieces</SelectItem>
-                    <SelectItem value="kilograms">Kilograms</SelectItem>
-                    <SelectItem value="litres">Litres</SelectItem>
-                    <SelectItem value="bags">Bags</SelectItem>
-                    <SelectItem value="boxes">Boxes</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+      {/* My Contributions */}
+      <div>
+        <h3 className="text-lg font-semibold mb-4">My Shared Items</h3>
+        {myContributions.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-8">
+              <p className="text-muted-foreground">You haven't shared any items yet</p>
+              <p className="text-sm text-muted-foreground">Share food with your community to help reduce waste!</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {myContributions.map((contribution) => (
+              <Card key={contribution.id} className={contribution.status === 'collected' ? 'opacity-60' : ''}>
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-2 flex-1">
+                      <h4 className="font-semibold text-lg">{contribution.name}</h4>
+                      
+                      {/* Updated layout: Category · Quantity */}
+                      <p className="text-sm text-muted-foreground">
+                        {contribution.category ? `${contribution.category.charAt(0).toUpperCase() + contribution.category.slice(1)} · ` : ''}
+                        {contribution.quantity} {contribution.unit}
+                      </p>
 
-            <div className="space-y-2">
-              <Label htmlFor="category">Category</Label>
-              <Select
-                value={formData.category}
-                onValueChange={(value) => setFormData({ ...formData, category: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="vegetables">Vegetables</SelectItem>
-                  <SelectItem value="fruits">Fruits</SelectItem>
-                  <SelectItem value="dairy">Dairy</SelectItem>
-                  <SelectItem value="meat">Meat</SelectItem>
-                  <SelectItem value="grains">Grains</SelectItem>
-                  <SelectItem value="baked-goods">Baked Goods</SelectItem>
-                  <SelectItem value="canned">Canned Goods</SelectItem>
-                  <SelectItem value="frozen">Frozen</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="description">Description (Optional)</Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Add any additional details..."
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="location">Pickup Location (Optional)</Label>
-              <Input
-                id="location"
-                value={formData.location}
-                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                placeholder="e.g., Front porch, Building lobby..."
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="available_until">Available Until (Optional)</Label>
-              <Input
-                id="available_until"
-                type="date"
-                value={formData.available_until}
-                onChange={(e) => setFormData({ ...formData, available_until: e.target.value })}
-              />
-            </div>
-            
-            <Button type="submit" className="w-full" disabled={addContributionMutation.isPending}>
-              {addContributionMutation.isPending ? "Sharing..." : "Share Food"}
-            </Button>
-          </form>
-        </DialogContent>
-      </Dialog>
+                      {contribution.description && (
+                        <p className="text-sm">{contribution.description}</p>
+                      )}
 
-      {/* Edit Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Shared Food Item</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleEditSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-name">Food Item</Label>
-              <Input
-                id="edit-name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                required
-                readOnly
-              />
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-quantity">Shared Quantity</Label>
-                <Input
-                  id="edit-quantity"
-                  type="number"
-                  min="1"
-                  max={selectedPantryItem ? selectedPantryItem.quantity + (editingContribution?.quantity || 0) : formData.quantity}
-                  value={formData.quantity}
-                  onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) })}
-                  required
-                />
-                <p className="text-xs text-muted-foreground">
-                  Max available: {selectedPantryItem ? selectedPantryItem.quantity + (editingContribution?.quantity || 0) : formData.quantity} {formData.unit}
-                </p>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="edit-unit">Unit</Label>
-                <Select
-                  value={formData.unit}
-                  onValueChange={(value) => setFormData({ ...formData, unit: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pieces">Pieces</SelectItem>
-                    <SelectItem value="kilograms">Kilograms</SelectItem>
-                    <SelectItem value="litres">Litres</SelectItem>
-                    <SelectItem value="bags">Bags</SelectItem>
-                    <SelectItem value="boxes">Boxes</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+                      {contribution.location && (
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <MapPin className="w-3 h-3" />
+                          <span>{contribution.location}</span>
+                        </div>
+                      )}
 
-            <div className="space-y-2">
-              <Label htmlFor="edit-category">Category</Label>
-              <Select
-                value={formData.category}
-                onValueChange={(value) => setFormData({ ...formData, category: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="vegetables">Vegetables</SelectItem>
-                  <SelectItem value="fruits">Fruits</SelectItem>
-                  <SelectItem value="dairy">Dairy</SelectItem>
-                  <SelectItem value="meat">Meat</SelectItem>
-                  <SelectItem value="grains">Grains</SelectItem>
-                  <SelectItem value="baked-goods">Baked Goods</SelectItem>
-                  <SelectItem value="canned">Canned Goods</SelectItem>
-                  <SelectItem value="frozen">Frozen</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="edit-description">Description (Optional)</Label>
-              <Textarea
-                id="edit-description"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Add any additional details..."
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="edit-location">Pickup Location (Optional)</Label>
-              <Input
-                id="edit-location"
-                value={formData.location}
-                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                placeholder="e.g., Front porch, Building lobby..."
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="edit-available_until">Available Until (Optional)</Label>
-              <Input
-                id="edit-available_until"
-                type="date"
-                value={formData.available_until}
-                onChange={(e) => setFormData({ ...formData, available_until: e.target.value })}
-              />
-            </div>
-            
-            <Button type="submit" className="w-full" disabled={updateContributionMutation.isPending}>
-              {updateContributionMutation.isPending ? "Updating..." : "Update Food Item"}
-            </Button>
-          </form>
-        </DialogContent>
-      </Dialog>
+                      {contribution.available_until && (
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Calendar className="w-3 h-3" />
+                          <span>Until: {format(new Date(contribution.available_until), 'MMM dd, yyyy')}</span>
+                        </div>
+                      )}
+
+                      {/* Added icon for shared date */}
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Share2 className="w-3 h-3" />
+                        <span>Shared: {format(new Date(contribution.created_at), 'MMM dd, yyyy')}</span>
+                      </div>
+
+                      <div className="flex items-center gap-1 text-xs font-medium">
+                        <span className={`
+                          ${contribution.status === 'available' ? 'text-green-600' : ''}
+                          ${contribution.status === 'collected' ? 'text-blue-600' : ''}
+                          ${contribution.status === 'unavailable' ? 'text-gray-600' : ''}
+                        `}>
+                          Status: {contribution.status === 'collected' ? 'Item Collected' : contribution.status}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Show stop sharing button only for available items */}
+                    {contribution.status === 'available' && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleStopSharing(contribution.id)}
+                        disabled={stopSharingMutation.isPending}
+                        className="ml-4"
+                      >
+                        Stop Sharing
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
