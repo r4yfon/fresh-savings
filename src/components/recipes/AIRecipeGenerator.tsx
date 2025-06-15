@@ -1,26 +1,30 @@
-
-import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Sparkles, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useMutation } from "@tanstack/react-query";
+import { Loader2, Sparkles } from "lucide-react";
 
 interface AIRecipeGeneratorProps {
   selectedIngredients: string[];
   onRecipeGenerated: (recipe: any) => void;
 }
 
-const AIRecipeGenerator = ({ selectedIngredients, onRecipeGenerated }: AIRecipeGeneratorProps) => {
+const AIRecipeGenerator = ({
+  selectedIngredients,
+  onRecipeGenerated,
+}: AIRecipeGeneratorProps) => {
   const { toast } = useToast();
 
   const generateRecipeMutation = useMutation({
     mutationFn: async (ingredients: string[]) => {
-      const { data, error } = await supabase.functions.invoke('generate-recipe', {
-        body: { ingredients }
-      });
-      
+      const { data, error } = await supabase.functions.invoke(
+        "generate-recipe",
+        {
+          body: { ingredients },
+        },
+      );
+
       if (error) throw error;
       return data;
     },
@@ -34,7 +38,7 @@ const AIRecipeGenerator = ({ selectedIngredients, onRecipeGenerated }: AIRecipeG
       }
     },
     onError: (error) => {
-      console.error('Recipe generation error:', error);
+      console.error("Recipe generation error:", error);
       toast({
         title: "Generation Failed",
         description: "Failed to generate recipe. Please try again.",
@@ -47,7 +51,8 @@ const AIRecipeGenerator = ({ selectedIngredients, onRecipeGenerated }: AIRecipeG
     if (selectedIngredients.length === 0) {
       toast({
         title: "No ingredients selected",
-        description: "Please select at least one ingredient to generate a recipe.",
+        description:
+          "Please select at least one ingredient to generate a recipe.",
         variant: "destructive",
       });
       return;
@@ -66,21 +71,24 @@ const AIRecipeGenerator = ({ selectedIngredients, onRecipeGenerated }: AIRecipeG
       <CardContent>
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Generate a creative recipe based on your selected ingredients using AI.
+            Generate a creative recipe based on your selected ingredients using
+            AI.
           </p>
-          <Button 
+          <Button
             onClick={handleGenerateRecipe}
-            disabled={selectedIngredients.length === 0 || generateRecipeMutation.isPending}
-            className="w-full"
-          >
+            disabled={
+              selectedIngredients.length === 0 ||
+              generateRecipeMutation.isPending
+            }
+            className="w-full">
             {generateRecipeMutation.isPending ? (
               <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin" />
                 Generating Recipe...
               </>
             ) : (
               <>
-                <Sparkles className="w-4 h-4 mr-2" />
+                <Sparkles className="w-4 h-4" />
                 Generate Recipe ({selectedIngredients.length} ingredients)
               </>
             )}

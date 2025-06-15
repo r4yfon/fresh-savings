@@ -1,28 +1,32 @@
-
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import AuthComponent from "@/components/auth/AuthComponent";
-import PantryManager from "@/components/pantry/PantryManager";
-import RecipeGenerator from "@/components/recipes/RecipeGenerator";
 import FoodContributions from "@/components/contributions/FoodContributions";
 import LandingPage from "@/components/landing/LandingPage";
+import PantryManager from "@/components/pantry/PantryManager";
+import RecipeGenerator from "@/components/recipes/RecipeGenerator";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { ChefHat, Package, Users, Home, Menu, Utensils, Share2, Sparkles } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ChefHat, Menu, Package, Users } from "lucide-react";
+import { useState } from "react";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("landing");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false);
   const [authTabValue, setAuthTabValue] = useState("signin");
-  
+
   const { data: session } = useQuery({
-    queryKey: ['session'],
+    queryKey: ["session"],
     queryFn: async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       return session;
     },
   });
@@ -39,6 +43,7 @@ const Index = () => {
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     setActiveTab("landing");
+    window.location.reload();
   };
 
   const handleSignUpClick = () => {
@@ -81,7 +86,7 @@ const Index = () => {
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-bold">FreshSavings</h1>
             </div>
-            
+
             <div className="flex items-center gap-1">
               {session ? (
                 <>
@@ -89,27 +94,24 @@ const Index = () => {
                     variant={activeTab === "pantry" ? "default" : "ghost"}
                     size="sm"
                     onClick={() => handleNavigation("pantry")}
-                    className="px-3"
-                  >
-                    <Package className="w-4 h-4 mr-2" />
+                    className="px-3">
+                    <Package className="w-4 h-4" />
                     Pantry
                   </Button>
                   <Button
                     variant={activeTab === "recipes" ? "default" : "ghost"}
                     size="sm"
                     onClick={() => handleNavigation("recipes")}
-                    className="px-3"
-                  >
-                    <ChefHat className="w-4 h-4 mr-2" />
+                    className="px-3">
+                    <ChefHat className="w-4 h-4" />
                     Recipe Generator
                   </Button>
                   <Button
                     variant={activeTab === "community" ? "default" : "ghost"}
                     size="sm"
                     onClick={() => handleNavigation("community")}
-                    className="px-3"
-                  >
-                    <Users className="w-4 h-4 mr-2" />
+                    className="px-3">
+                    <Users className="w-4 h-4" />
                     Community Kitchen
                   </Button>
                 </>
@@ -119,27 +121,22 @@ const Index = () => {
                     variant="ghost"
                     size="sm"
                     onClick={handleLoginClick}
-                    className="px-3"
-                  >
+                    className="px-3">
                     Login
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={handleSignUpClick}
-                    className="px-3"
-                  >
+                    className="px-3">
                     Sign Up
                   </Button>
                 </>
               )}
             </div>
-            
+
             {session && (
-              <Button
-                variant="outline"
-                onClick={handleSignOut}
-              >
+              <Button variant="outline" onClick={handleSignOut}>
                 Sign Out
               </Button>
             )}
@@ -154,9 +151,11 @@ const Index = () => {
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-bold">FreshSavings</h1>
             </div>
-            
+
             <div className="flex items-center gap-2">
-              <Popover open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+              <Popover
+                open={isMobileMenuOpen}
+                onOpenChange={setIsMobileMenuOpen}>
                 <PopoverTrigger asChild>
                   <Button variant="ghost" size="sm">
                     <Menu className="w-5 h-5" />
@@ -169,33 +168,33 @@ const Index = () => {
                         <Button
                           variant={activeTab === "pantry" ? "default" : "ghost"}
                           className="justify-start"
-                          onClick={() => handleNavigation("pantry")}
-                        >
-                          <Package className="w-4 h-4 mr-2" />
+                          onClick={() => handleNavigation("pantry")}>
+                          <Package className="w-4 h-4" />
                           Pantry
                         </Button>
                         <Button
-                          variant={activeTab === "recipes" ? "default" : "ghost"}
+                          variant={
+                            activeTab === "recipes" ? "default" : "ghost"
+                          }
                           className="justify-start"
-                          onClick={() => handleNavigation("recipes")}
-                        >
-                          <ChefHat className="w-4 h-4 mr-2" />
+                          onClick={() => handleNavigation("recipes")}>
+                          <ChefHat className="w-4 h-4" />
                           Recipe Generator
                         </Button>
                         <Button
-                          variant={activeTab === "community" ? "default" : "ghost"}
+                          variant={
+                            activeTab === "community" ? "default" : "ghost"
+                          }
                           className="justify-start"
-                          onClick={() => handleNavigation("community")}
-                        >
-                          <Users className="w-4 h-4 mr-2" />
+                          onClick={() => handleNavigation("community")}>
+                          <Users className="w-4 h-4" />
                           Community Kitchen
                         </Button>
                         <div className="border-t pt-2 mt-2">
                           <Button
                             variant="outline"
                             className="w-full justify-start"
-                            onClick={handleSignOut}
-                          >
+                            onClick={handleSignOut}>
                             Sign Out
                           </Button>
                         </div>
@@ -205,15 +204,13 @@ const Index = () => {
                         <Button
                           variant="ghost"
                           className="justify-start"
-                          onClick={handleLoginClick}
-                        >
+                          onClick={handleLoginClick}>
                           Login
                         </Button>
                         <Button
                           variant="outline"
                           className="justify-start"
-                          onClick={handleSignUpClick}
-                        >
+                          onClick={handleSignUpClick}>
                           Sign Up
                         </Button>
                       </>
@@ -228,11 +225,14 @@ const Index = () => {
 
       {/* Auth Dialog */}
       <Dialog open={isAuthDialogOpen} onOpenChange={setIsAuthDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Authentication</DialogTitle>
-          </DialogHeader>
-          <AuthComponent defaultTab={authTabValue} onClose={() => setIsAuthDialogOpen(false)} />
+        <DialogContent className="max-w-md p-0">
+          {/* <DialogHeader> */}
+          {/* <DialogTitle>Authentication</DialogTitle> */}
+          {/* </DialogHeader> */}
+          <AuthComponent
+            defaultTab={authTabValue}
+            onClose={() => setIsAuthDialogOpen(false)}
+          />
         </DialogContent>
       </Dialog>
 
@@ -258,8 +258,8 @@ const Index = () => {
           )}
 
           {activeTab === "recipes" && (
-            <RecipeGenerator 
-              userId={session?.user?.id || ""} 
+            <RecipeGenerator
+              userId={session?.user?.id || ""}
               onNavigateToPantry={() => setActiveTab("pantry")}
             />
           )}
