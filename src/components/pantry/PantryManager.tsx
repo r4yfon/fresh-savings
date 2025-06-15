@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Calendar, Settings, Apple, Carrot, Milk, Beef, Wheat, Utensils, Package2, Snowflake, HelpCircle, Package, Share } from "lucide-react";
+import { Plus, Trash2, Calendar, Settings, Apple, Carrot, Milk, Beef, Wheat, Utensils, Package2, Snowflake, HelpCircle, Package, Share, SquareSigma } from "lucide-react";
 import { format } from "date-fns";
 
 interface PantryItem {
@@ -40,7 +40,7 @@ const categoryIcons = {
 };
 
 const categories = [
-  { value: "all", label: "All Categories", icon: HelpCircle },
+  { value: "all", label: "All Categories", icon: SquareSigma },
   { value: "fruits", label: "Fruits", icon: Apple },
   { value: "vegetables", label: "Vegetables", icon: Carrot },
   { value: "dairy", label: "Dairy", icon: Milk },
@@ -410,28 +410,43 @@ const PantryManager = ({ userId }: PantryManagerProps) => {
         </div>
       </div>
 
-      {/* Category Filter */}
+      {/* Category Filter and Select All */}
       {pantryItems.length > 0 && (
-        <div className="space-y-3">
-          <Label>Filter by Category</Label>
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger className="w-48">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {categories.map((category) => {
-                const IconComponent = category.icon;
-                return (
-                  <SelectItem key={category.value} value={category.value}>
-                    <div className="flex items-center gap-2">
-                      <IconComponent className="w-4 h-4" />
-                      {category.label}
-                    </div>
-                  </SelectItem>
-                );
-              })}
-            </SelectContent>
-          </Select>
+        <div className="flex justify-between items-center">
+          <div className="space-y-3">
+            <Label>Filter by Category</Label>
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="w-48">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((category) => {
+                  const IconComponent = category.icon;
+                  return (
+                    <SelectItem key={category.value} value={category.value}>
+                      <div className="flex items-center gap-2">
+                        <IconComponent className="w-4 h-4" />
+                        {category.label}
+                      </div>
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {isManageMode && (
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="select-all"
+                checked={selectedItems.length === filteredPantryItems.length}
+                onCheckedChange={handleSelectAll}
+              />
+              <Label htmlFor="select-all" className="text-sm font-medium">
+                Select All ({filteredPantryItems.length} items)
+              </Label>
+            </div>
+          )}
         </div>
       )}
 
@@ -451,102 +466,84 @@ const PantryManager = ({ userId }: PantryManagerProps) => {
           </CardContent>
         </Card>
       ) : (
-        <>
-          {isManageMode && (
-            <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="select-all"
-                  checked={selectedItems.length === filteredPantryItems.length}
-                  onCheckedChange={handleSelectAll}
-                />
-                <Label htmlFor="select-all" className="text-sm font-medium">
-                  Select All ({filteredPantryItems.length} items)
-                </Label>
-              </div>
-              {selectedItems.length > 0 && (
-                <p className="text-sm text-muted-foreground">
-                  {selectedItems.length} item(s) selected
-                </p>
-              )}
-            </div>
-          )}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredPantryItems.map((item) => {
-              const IconComponent = categoryIcons[item.category as keyof typeof categoryIcons] || HelpCircle;
-              const isSelected = selectedItems.includes(item.id);
-              
-              return (
-                <Card 
-                  key={item.id} 
-                  className={`
-                    ${isExpiringSoon(item.expiry_date) ? 'border-red-500' : ''} 
-                    ${isManageMode ? 'cursor-pointer hover:bg-muted/50' : ''}
-                    ${isSelected ? 'ring-2 ring-primary' : ''}
-                  `}
-                  onClick={() => handleCardClick(item.id)}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex flex-col items-start text-left space-y-3">
-                      {/* Icon at top - 36px */}
-                      <IconComponent className="w-9 h-9 text-muted-foreground" />
-                      
-                      {/* Item name */}
-                      <div className="space-y-1 w-full">
-                        <h3 className="font-semibold text-lg">{item.name}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          {item.quantity} {item.unit}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredPantryItems.map((item) => {
+            const IconComponent = categoryIcons[item.category as keyof typeof categoryIcons] || HelpCircle;
+            const isSelected = selectedItems.includes(item.id);
+            
+            return (
+              <Card 
+                key={item.id} 
+                className={`
+                  ${isExpiringSoon(item.expiry_date) ? 'border-red-500' : ''} 
+                  ${isManageMode ? 'cursor-pointer hover:bg-muted/50' : ''}
+                  ${isSelected ? 'ring-2 ring-primary' : ''}
+                  relative
+                `}
+                onClick={() => handleCardClick(item.id)}
+              >
+                <CardContent className="p-4">
+                  {/* Delete button in top right */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute top-2 right-2 text-red-600 hover:text-red-700 hover:bg-red-50 h-8 w-8 p-0"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteItemMutation.mutate(item.id);
+                    }}
+                    disabled={deleteItemMutation.isPending}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+
+                  <div className="flex flex-col items-start text-left space-y-3">
+                    {/* Icon at top - 36px */}
+                    <IconComponent className="w-9 h-9 text-muted-foreground" />
+                    
+                    {/* Item name */}
+                    <div className="space-y-1 w-full pr-12">
+                      <h3 className="font-semibold text-lg">{item.name}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {item.quantity} {item.unit}
+                      </p>
+                      {item.category && (
+                        <p className="text-xs text-muted-foreground capitalize">
+                          {item.category}
                         </p>
-                        {item.category && (
-                          <p className="text-xs text-muted-foreground capitalize">
-                            {item.category}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Additional info */}
-                      <div className="space-y-1 w-full">
-                        {item.expiry_date && (
-                          <div className={`flex items-center gap-1 text-xs ${isExpiringSoon(item.expiry_date) ? 'text-red-600' : 'text-muted-foreground'}`}>
-                            <Calendar className="w-3 h-3" />
-                            <span>Expires: {format(new Date(item.expiry_date), 'MMM dd, yyyy')}</span>
-                          </div>
-                        )}
-                        {isExpiringSoon(item.expiry_date) && (
-                          <p className="text-xs text-red-600 font-medium">⚠️ Expiring soon!</p>
-                        )}
-                      </div>
-
-                      {/* Action buttons */}
-                      <div className="flex gap-2 w-full">
-                        {isManageMode && (
-                          <Checkbox
-                            id={`item-${item.id}`}
-                            checked={selectedItems.includes(item.id)}
-                            onCheckedChange={(checked) => handleItemSelection(item.id, checked as boolean)}
-                            onClick={(e) => e.stopPropagation()}
-                          />
-                        )}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteItemMutation.mutate(item.id);
-                          }}
-                          disabled={deleteItemMutation.isPending}
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
-                      </div>
+                      )}
                     </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        </>
+
+                    {/* Additional info */}
+                    <div className="space-y-1 w-full">
+                      {item.expiry_date && (
+                        <div className={`flex items-center gap-1 text-xs ${isExpiringSoon(item.expiry_date) ? 'text-red-600' : 'text-muted-foreground'}`}>
+                          <Calendar className="w-3 h-3" />
+                          <span>Expires: {format(new Date(item.expiry_date), 'MMM dd, yyyy')}</span>
+                        </div>
+                      )}
+                      {isExpiringSoon(item.expiry_date) && (
+                        <p className="text-xs text-red-600 font-medium">⚠️ Expiring soon!</p>
+                      )}
+                    </div>
+
+                    {/* Checkbox for manage mode */}
+                    {isManageMode && (
+                      <div className="flex items-center">
+                        <Checkbox
+                          id={`item-${item.id}`}
+                          checked={selectedItems.includes(item.id)}
+                          onCheckedChange={(checked) => handleItemSelection(item.id, checked as boolean)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
       )}
     </div>
   );

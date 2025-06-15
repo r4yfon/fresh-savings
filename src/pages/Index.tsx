@@ -5,12 +5,11 @@ import AuthComponent from "@/components/auth/AuthComponent";
 import PantryManager from "@/components/pantry/PantryManager";
 import RecipeGenerator from "@/components/recipes/RecipeGenerator";
 import FoodContributions from "@/components/contributions/FoodContributions";
-import LandingPage from "@/components/landing/LandingPage";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { ChefHat, Package, Users, Home, Menu } from "lucide-react";
+import { ChefHat, Package, Users, Home, Menu, Utensils, Share2, Sparkles } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, NavigationMenuTrigger } from "@/components/ui/navigation-menu";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("landing");
@@ -47,13 +46,85 @@ const Index = () => {
 
   if (activeTab === "landing") {
     return (
-      <div>
-        <LandingPage />
-        <div className="fixed top-4 right-4">
-          <Button onClick={() => setActiveTab("pantry")}>
-            Enter App
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
+        {/* Header */}
+        <header className="container mx-auto px-6 py-8">
+          <div className="flex justify-between items-center">
+            <h1 className="text-3xl font-bold text-green-700">FreshSavings</h1>
+            <Button onClick={() => setActiveTab("pantry")} size="lg">
+              Get Started
+            </Button>
+          </div>
+        </header>
+
+        {/* Hero Section */}
+        <section className="container mx-auto px-6 py-16 text-center">
+          <h2 className="text-5xl font-bold text-gray-900 mb-6">
+            Smart Food Management for Everyone
+          </h2>
+          <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+            Reduce food waste, save money, and share with your community. 
+            FreshSavings helps you manage your pantry, discover recipes, and connect with neighbors.
+          </p>
+          <Button onClick={() => setActiveTab("pantry")} size="lg" className="px-8 py-6 text-lg">
+            Start Managing Your Pantry
+            <ChefHat className="ml-2 w-5 h-5" />
           </Button>
-        </div>
+        </section>
+
+        {/* Features Section */}
+        <section className="container mx-auto px-6 py-16">
+          <h3 className="text-3xl font-bold text-center mb-12">Everything You Need</h3>
+          <div className="grid md:grid-cols-3 gap-8">
+            <Card className="text-center">
+              <CardHeader>
+                <Package className="w-12 h-12 mx-auto text-green-600 mb-4" />
+                <CardTitle>Smart Pantry</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">
+                  Track your ingredients, monitor expiry dates, and get alerts before food goes bad.
+                </p>
+              </CardContent>
+            </Card>
+            
+            <Card className="text-center">
+              <CardHeader>
+                <Sparkles className="w-12 h-12 mx-auto text-blue-600 mb-4" />
+                <CardTitle>AI Recipe Generator</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">
+                  Get personalized recipe suggestions based on what you have in your pantry.
+                </p>
+              </CardContent>
+            </Card>
+            
+            <Card className="text-center">
+              <CardHeader>
+                <Share2 className="w-12 h-12 mx-auto text-purple-600 mb-4" />
+                <CardTitle>Community Kitchen</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">
+                  Share surplus food with neighbors and discover what others are offering.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+
+        {/* CTA Section */}
+        <section className="container mx-auto px-6 py-16 text-center bg-white rounded-lg mx-6 mb-16 shadow-lg">
+          <h3 className="text-3xl font-bold mb-4">Ready to Start Saving?</h3>
+          <p className="text-xl text-gray-600 mb-8">
+            Join thousands of users who are reducing food waste and saving money.
+          </p>
+          <Button onClick={() => setActiveTab("pantry")} size="lg" className="px-8 py-6 text-lg">
+            Enter App
+            <Utensils className="ml-2 w-5 h-5" />
+          </Button>
+        </section>
       </div>
     );
   }

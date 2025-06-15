@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, MapPin, Calendar, Package, Edit, Share } from "lucide-react";
+import { Plus, MapPin, Calendar, Package, Edit, Share, StopCircle } from "lucide-react";
 import { format } from "date-fns";
 
 interface FoodContribution {
@@ -209,6 +209,32 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
     },
   });
 
+  const stopContributionMutation = useMutation({
+    mutationFn: async (contributionId: string) => {
+      const { error } = await supabase
+        .from('food_contributions')
+        .update({ status: 'unavailable' })
+        .eq('id', contributionId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['food-contributions'] });
+      toast({
+        title: "Success",
+        description: "Contribution stopped successfully!",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to stop contribution",
+        variant: "destructive",
+      });
+      console.error('Error stopping contribution:', error);
+    },
+  });
+
   const resetForm = () => {
     setFormData({
       name: "",
@@ -271,6 +297,10 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
     }
   };
 
+  const handleStopContribution = (contributionId: string) => {
+    stopContributionMutation.mutate(contributionId);
+  };
+
   if (isLoading) {
     return <div>Loading food contributions...</div>;
   }
@@ -278,7 +308,7 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Community Food Sharing</h2>
+        <h2 className="text-2xl font-bold">Community Kitchen</h2>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
             <Button onClick={handleOpenAddDialog}>
@@ -516,31 +546,49 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
                   </div>
                   <div className="flex gap-1">
                     {contribution.contributor_id === userId && (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleOpenEditDialog(contribution)}
+                          className="flex items-center gap-1"
+                        >
+                          <Edit className="w-4 h-4" />
+                          <span className="text-xs">Edit</span>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleStopContribution(contribution.id)}
+                          className="flex items-center gap-1 text-red-600 hover:text-red-700"
+                          disabled={stopContributionMutation.isPending}
+                        >
+                          <StopCircle className="w-4 h-4" />
+                          <span className="text-xs">Stop</span>
+                        </Button>
+                      </>
+                    )}
+                    {contribution.contributor_id !== userId && (
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleOpenEditDialog(contribution)}
+                        onClick={() => {
+                          const pantryItem = pantryItems.find(item => 
+                            item.name.toLowerCase() === contribution.name.toLowerCase()
+                          );
+                          if (pantryItem) {
+                            contributeFromPantryMutation.mutate(pantryItem);
+                          }
+                        }}
+                        disabled={!pantryItems.some(item => 
+                          item.name.toLowerCase() === contribution.name.toLowerCase()
+                        )}
+                        className="flex items-center gap-1"
                       >
-                        <Edit className="w-4 h-4" />
+                        <Share className="w-4 h-4" />
+                        <span className="text-xs">Contribute</span>
                       </Button>
                     )}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        const pantryItem = pantryItems.find(item => 
-                          item.name.toLowerCase() === contribution.name.toLowerCase()
-                        );
-                        if (pantryItem) {
-                          contributeFromPantryMutation.mutate(pantryItem);
-                        }
-                      }}
-                      disabled={!pantryItems.some(item => 
-                        item.name.toLowerCase() === contribution.name.toLowerCase()
-                      )}
-                    >
-                      <Share className="w-4 h-4" />
-                    </Button>
                   </div>
                 </div>
               </CardHeader>

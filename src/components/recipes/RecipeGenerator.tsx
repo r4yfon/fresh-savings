@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,10 +8,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChefHat, Package, Plus, X } from "lucide-react";
+import { ChefHat, Package, Plus, X, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import AIRecipeGenerator from "./AIRecipeGenerator";
-import IngredientSelector from "./IngredientSelector";
 import PantryItemSelector from "./PantryItemSelector";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -35,6 +35,7 @@ const RecipeGenerator = ({ userId, onNavigateToPantry }: RecipeGeneratorProps) =
   const [isPantryModalOpen, setIsPantryModalOpen] = useState(false);
   const [selectedIngredients, setSelectedIngredients] = useState<string[]>([]);
   const [generatedRecipe, setGeneratedRecipe] = useState<any>(null);
+  const [manualIngredient, setManualIngredient] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     quantity: 1,
@@ -133,6 +134,19 @@ const RecipeGenerator = ({ userId, onNavigateToPantry }: RecipeGeneratorProps) =
 
   const removeIngredient = (indexToRemove: number) => {
     setSelectedIngredients(selectedIngredients.filter((_, index) => index !== indexToRemove));
+  };
+
+  const addManualIngredient = () => {
+    if (manualIngredient.trim()) {
+      setSelectedIngredients([...selectedIngredients, capitalizeWords(manualIngredient.trim())]);
+      setManualIngredient("");
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      addManualIngredient();
+    }
   };
 
   if (isLoading) {
@@ -253,7 +267,7 @@ const RecipeGenerator = ({ userId, onNavigateToPantry }: RecipeGeneratorProps) =
         </Card>
       ) : (
         <div className="space-y-6">
-          {/* Selected Ingredients Section - Moved outside of cards */}
+          {/* Selected Ingredients Section */}
           {selectedIngredients.length > 0 && (
             <Card>
               <CardHeader>
@@ -302,20 +316,31 @@ const RecipeGenerator = ({ userId, onNavigateToPantry }: RecipeGeneratorProps) =
                 <CardTitle>Manually Add Ingredients</CardTitle>
               </CardHeader>
               <CardContent>
-                <IngredientSelector
-                  userId={userId}
-                  selectedIngredients={selectedIngredients}
-                  onIngredientsChange={setSelectedIngredients}
-                />
+                <div className="flex gap-2">
+                  <Input
+                    value={manualIngredient}
+                    onChange={(e) => setManualIngredient(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    placeholder="Enter ingredient name..."
+                    className="flex-1"
+                  />
+                  <Button onClick={addManualIngredient} disabled={!manualIngredient.trim()}>
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* AI Recipe Generator */}
-          <AIRecipeGenerator
-            selectedIngredients={selectedIngredients}
-            onRecipeGenerated={handleRecipeGenerated}
-          />
+          {/* Simple AI Recipe Generator Button */}
+          {selectedIngredients.length > 0 && (
+            <div className="flex justify-center">
+              <AIRecipeGenerator
+                selectedIngredients={selectedIngredients}
+                onRecipeGenerated={handleRecipeGenerated}
+              />
+            </div>
+          )}
 
           {/* Generated Recipe Display */}
           {generatedRecipe && (
@@ -352,14 +377,23 @@ const RecipeGenerator = ({ userId, onNavigateToPantry }: RecipeGeneratorProps) =
             </Card>
           )}
 
-          {/* Pantry Item Selector Modal */}
-          <PantryItemSelector
-            userId={userId}
-            isOpen={isPantryModalOpen}
-            onClose={() => setIsPantryModalOpen(false)}
-            selectedIngredients={selectedIngredients}
-            onIngredientsChange={setSelectedIngredients}
-          />
+          {/* Pantry Item Selector Modal - Made bigger */}
+          <Dialog open={isPantryModalOpen} onOpenChange={setIsPantryModalOpen}>
+            <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
+              <DialogHeader>
+                <DialogTitle>Choose from Your Pantry</DialogTitle>
+              </DialogHeader>
+              <div className="overflow-y-auto pr-2" style={{ maxHeight: 'calc(80vh - 120px)' }}>
+                <PantryItemSelector
+                  userId={userId}
+                  isOpen={isPantryModalOpen}
+                  onClose={() => setIsPantryModalOpen(false)}
+                  selectedIngredients={selectedIngredients}
+                  onIngredientsChange={setSelectedIngredients}
+                />
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       )}
     </div>
