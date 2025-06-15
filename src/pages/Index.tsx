@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -24,10 +24,14 @@ const Index = () => {
     },
   });
 
-  // Listen for auth changes
-  supabase.auth.onAuthStateChange((event, session) => {
-    setUser(session?.user || null);
-  });
+  // Listen for auth changes with proper cleanup
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user || null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
