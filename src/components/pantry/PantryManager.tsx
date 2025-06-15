@@ -9,9 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Calendar, Settings, Apple, Carrot, Milk, Beef, Wheat, Utensils, Package2, Snowflake, HelpCircle, Package } from "lucide-react";
+import { Plus, Trash2, Calendar, Settings, Apple, Carrot, Milk, Beef, Wheat, Utensils, Package2, Snowflake, HelpCircle, Package, Share } from "lucide-react";
 import { format } from "date-fns";
 
 interface PantryItem {
@@ -205,6 +204,41 @@ const PantryManager = ({ userId }: PantryManagerProps) => {
         description: "Failed to clear pantry",
         variant: "destructive",
       });
+    },
+  });
+
+  const contributeItemMutation = useMutation({
+    mutationFn: async (item: PantryItem) => {
+      const { data, error } = await supabase
+        .from('food_contributions')
+        .insert({
+          contributor_id: userId,
+          name: item.name,
+          quantity: item.quantity,
+          unit: item.unit,
+          category: item.category,
+          available_until: getTwoWeeksFromNow(),
+        })
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['food-contributions'] });
+      toast({
+        title: "Success",
+        description: "Item contributed to community kitchen!",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to contribute item",
+        variant: "destructive",
+      });
+      console.error('Error contributing item:', error);
     },
   });
 
@@ -470,9 +504,39 @@ const PantryManager = ({ userId }: PantryManagerProps) => {
               
               return (
                 <Card key={item.id} className={`${isExpiringSoon(item.expiry_date) ? 'border-red-500' : ''}`}>
-                  <CardHeader className="pb-3">
-                    <div className="flex justify-between items-start">
-                      <div className="flex items-center space-x-2">
+                  <CardContent className="p-4">
+                    <div className="flex flex-col items-center text-center space-y-3">
+                      {/* Icon at top - 48px */}
+                      <IconComponent className="w-12 h-12 text-muted-foreground" />
+                      
+                      {/* Item name */}
+                      <div className="space-y-1">
+                        <h3 className="font-semibold text-lg">{item.name}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {item.quantity} {item.unit}
+                        </p>
+                        {item.category && (
+                          <p className="text-xs text-muted-foreground capitalize">
+                            {item.category}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Additional info */}
+                      <div className="space-y-1 text-center w-full">
+                        {item.expiry_date && (
+                          <div className={`flex items-center justify-center gap-1 text-xs ${isExpiringSoon(item.expiry_date) ? 'text-red-600' : 'text-muted-foreground'}`}>
+                            <Calendar className="w-3 h-3" />
+                            <span>Expires: {format(new Date(item.expiry_date), 'MMM dd, yyyy')}</span>
+                          </div>
+                        )}
+                        {isExpiringSoon(item.expiry_date) && (
+                          <p className="text-xs text-red-600 font-medium">⚠️ Expiring soon!</p>
+                        )}
+                      </div>
+
+                      {/* Action buttons */}
+                      <div className="flex gap-2 w-full">
                         {isManageMode && (
                           <Checkbox
                             id={`item-${item.id}`}
@@ -480,38 +544,25 @@ const PantryManager = ({ userId }: PantryManagerProps) => {
                             onCheckedChange={(checked) => handleItemSelection(item.id, checked as boolean)}
                           />
                         )}
-                        <IconComponent className="w-5 h-5 text-muted-foreground" />
-                        <CardTitle className="text-lg">{item.name}</CardTitle>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => contributeItemMutation.mutate(item)}
+                          disabled={contributeItemMutation.isPending}
+                        >
+                          <Share className="w-3 h-3 mr-1" />
+                          Share
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => deleteItemMutation.mutate(item.id)}
+                          disabled={deleteItemMutation.isPending}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => deleteItemMutation.mutate(item.id)}
-                        disabled={deleteItemMutation.isPending}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      {item.category && (
-                        <p className="text-sm text-muted-foreground capitalize">
-                          {item.category} · {item.quantity} {item.unit}
-                        </p>
-                      )}
-                      {!item.category && (
-                        <p className="font-medium">{item.quantity} {item.unit}</p>
-                      )}
-                      {item.expiry_date && (
-                        <div className={`flex items-center gap-1 text-sm ${isExpiringSoon(item.expiry_date) ? 'text-red-600' : 'text-muted-foreground'}`}>
-                          <Calendar className="w-3 h-3" />
-                          <span>Expires: {format(new Date(item.expiry_date), 'MMM dd, yyyy')}</span>
-                        </div>
-                      )}
-                      {isExpiringSoon(item.expiry_date) && (
-                        <p className="text-xs text-red-600 font-medium">⚠️ Expiring soon!</p>
-                      )}
                     </div>
                   </CardContent>
                 </Card>

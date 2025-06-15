@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, MapPin, Calendar, Package } from "lucide-react";
+import { Plus, MapPin, Calendar, Package, Edit, Share } from "lucide-react";
 import { format } from "date-fns";
 
 interface FoodContribution {
@@ -27,12 +26,22 @@ interface FoodContribution {
   created_at: string;
 }
 
+interface PantryItem {
+  id: string;
+  name: string;
+  quantity: number;
+  unit: string;
+  category: string | null;
+}
+
 interface FoodContributionsProps {
   userId: string;
 }
 
 const FoodContributions = ({ userId }: FoodContributionsProps) => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingContribution, setEditingContribution] = useState<FoodContribution | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -57,6 +66,20 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
   const capitalizeWords = (str: string) => {
     return str.toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
   };
+
+  // Fetch pantry items for the dropdown
+  const { data: pantryItems = [] } = useQuery({
+    queryKey: ['pantry-items', userId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('pantry_items')
+        .select('*')
+        .order('name');
+      
+      if (error) throw error;
+      return data as PantryItem[];
+    },
+  });
 
   const { data: contributions = [], isLoading } = useQuery({
     queryKey: ['food-contributions'],
@@ -95,15 +118,7 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['food-contributions'] });
       setIsAddDialogOpen(false);
-      setFormData({
-        name: "",
-        description: "",
-        quantity: 1,
-        unit: "pieces",
-        location: "",
-        available_until: "",
-        category: "",
-      });
+      resetForm();
       toast({
         title: "Success",
         description: "Food contribution added successfully!",
@@ -119,22 +134,141 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
     },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    addContributionMutation.mutate(formData);
-  };
+  const updateContributionMutation = useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: typeof formData }) => {
+      const { data, error } = await supabase
+        .from('food_contributions')
+        .update({
+          name: capitalizeWords(updates.name),
+          description: updates.description || null,
+          quantity: updates.quantity,
+          unit: updates.unit,
+          location: updates.location || null,
+          available_until: updates.available_until || null,
+          category: updates.category || null,
+        })
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['food-contributions'] });
+      setIsEditDialogOpen(false);
+      setEditingContribution(null);
+      resetForm();
+      toast({
+        title: "Success",
+        description: "Food contribution updated successfully!",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to update food contribution",
+        variant: "destructive",
+      });
+      console.error('Error updating contribution:', error);
+    },
+  });
 
-  const handleOpenAddDialog = () => {
+  const contributeFromPantryMutation = useMutation({
+    mutationFn: async (pantryItem: PantryItem) => {
+      const { data, error } = await supabase
+        .from('food_contributions')
+        .insert({
+          contributor_id: userId,
+          name: pantryItem.name,
+          quantity: pantryItem.quantity,
+          unit: pantryItem.unit,
+          category: pantryItem.category,
+          available_until: getTwoWeeksFromNow(),
+        })
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['food-contributions'] });
+      toast({
+        title: "Success",
+        description: "Item contributed from pantry!",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to contribute item",
+        variant: "destructive",
+      });
+      console.error('Error contributing from pantry:', error);
+    },
+  });
+
+  const resetForm = () => {
     setFormData({
       name: "",
       description: "",
       quantity: 1,
       unit: "pieces",
       location: "",
-      available_until: getTwoWeeksFromNow(),
+      available_until: "",
       category: "",
     });
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    addContributionMutation.mutate(formData);
+  };
+
+  const handleEditSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editingContribution) {
+      updateContributionMutation.mutate({
+        id: editingContribution.id,
+        updates: formData
+      });
+    }
+  };
+
+  const handleOpenAddDialog = () => {
+    resetForm();
+    setFormData(prev => ({ ...prev, available_until: getTwoWeeksFromNow() }));
     setIsAddDialogOpen(true);
+  };
+
+  const handleOpenEditDialog = (contribution: FoodContribution) => {
+    setEditingContribution(contribution);
+    setFormData({
+      name: contribution.name,
+      description: contribution.description || "",
+      quantity: contribution.quantity,
+      unit: contribution.unit,
+      location: contribution.location || "",
+      available_until: contribution.available_until || "",
+      category: contribution.category || "",
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handlePantryItemSelect = (value: string) => {
+    const selectedItem = pantryItems.find(item => item.id === value);
+    if (selectedItem) {
+      setFormData({
+        name: selectedItem.name,
+        description: "",
+        quantity: selectedItem.quantity,
+        unit: selectedItem.unit,
+        location: "",
+        available_until: getTwoWeeksFromNow(),
+        category: selectedItem.category || "",
+      });
+    }
   };
 
   if (isLoading) {
@@ -157,6 +291,22 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
               <DialogTitle>Share Food with Community</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="pantry-select">Select from Pantry (Optional)</Label>
+                <Select onValueChange={handlePantryItemSelect}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose an item from your pantry" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {pantryItems.map((item) => (
+                      <SelectItem key={item.id} value={item.id}>
+                        {item.name} ({item.quantity} {item.unit})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="name">Food Item Name</Label>
                 <Input
@@ -257,6 +407,91 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
             </form>
           </DialogContent>
         </Dialog>
+
+        {/* Edit Dialog */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Food Contribution</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleEditSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-name">Food Item Name</Label>
+                <Input
+                  id="edit-name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-description">Description (Optional)</Label>
+                <Textarea
+                  id="edit-description"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Additional details about the food..."
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-quantity">Quantity</Label>
+                  <Input
+                    id="edit-quantity"
+                    type="number"
+                    min="1"
+                    value={formData.quantity}
+                    onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) })}
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="edit-unit">Unit</Label>
+                  <Select
+                    value={formData.unit}
+                    onValueChange={(value) => setFormData({ ...formData, unit: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pieces">Pieces</SelectItem>
+                      <SelectItem value="kilograms">Kilograms</SelectItem>
+                      <SelectItem value="litres">Litres</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-location">Pickup Location</Label>
+                <Input
+                  id="edit-location"
+                  value={formData.location}
+                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                  placeholder="Where can people pick this up?"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="edit-available_until">Available Until (Optional)</Label>
+                <Input
+                  id="edit-available_until"
+                  type="date"
+                  value={formData.available_until}
+                  onChange={(e) => setFormData({ ...formData, available_until: e.target.value })}
+                />
+              </div>
+              
+              <Button type="submit" className="w-full" disabled={updateContributionMutation.isPending}>
+                {updateContributionMutation.isPending ? "Updating..." : "Update Contribution"}
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {contributions.length === 0 ? (
@@ -272,10 +507,42 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
           {contributions.map((contribution) => (
             <Card key={contribution.id}>
               <CardHeader>
-                <CardTitle className="text-lg">{contribution.name}</CardTitle>
-                {contribution.category && (
-                  <p className="text-sm text-muted-foreground capitalize">{contribution.category}</p>
-                )}
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle className="text-lg">{contribution.name}</CardTitle>
+                    {contribution.category && (
+                      <p className="text-sm text-muted-foreground capitalize">{contribution.category}</p>
+                    )}
+                  </div>
+                  <div className="flex gap-1">
+                    {contribution.contributor_id === userId && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleOpenEditDialog(contribution)}
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        const pantryItem = pantryItems.find(item => 
+                          item.name.toLowerCase() === contribution.name.toLowerCase()
+                        );
+                        if (pantryItem) {
+                          contributeFromPantryMutation.mutate(pantryItem);
+                        }
+                      }}
+                      disabled={!pantryItems.some(item => 
+                        item.name.toLowerCase() === contribution.name.toLowerCase()
+                      )}
+                    >
+                      <Share className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">

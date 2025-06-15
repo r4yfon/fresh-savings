@@ -74,68 +74,47 @@ const Index = () => {
       <div className="hidden md:block border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setActiveTab("landing")}
-                >
-                  <Home className="w-4 h-4 mr-2" />
-                  Home
-                </Button>
-                <h1 className="text-xl font-bold">FreshSavings</h1>
-              </div>
-              
-              <NavigationMenu>
-                <NavigationMenuList>
-                  <NavigationMenuItem>
-                    <NavigationMenuLink
-                      className={`px-4 py-2 rounded-md cursor-pointer transition-colors ${
-                        activeTab === "pantry" 
-                          ? "bg-accent text-accent-foreground" 
-                          : "hover:bg-accent hover:text-accent-foreground"
-                      }`}
-                      onClick={() => handleNavigation("pantry")}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Package className="w-4 h-4" />
-                        Pantry
-                      </div>
-                    </NavigationMenuLink>
-                  </NavigationMenuItem>
-                  <NavigationMenuItem>
-                    <NavigationMenuLink
-                      className={`px-4 py-2 rounded-md cursor-pointer transition-colors ${
-                        activeTab === "recipes" 
-                          ? "bg-accent text-accent-foreground" 
-                          : "hover:bg-accent hover:text-accent-foreground"
-                      }`}
-                      onClick={() => handleNavigation("recipes")}
-                    >
-                      <div className="flex items-center gap-2">
-                        <ChefHat className="w-4 h-4" />
-                        Recipe Generator
-                      </div>
-                    </NavigationMenuLink>
-                  </NavigationMenuItem>
-                  <NavigationMenuItem>
-                    <NavigationMenuLink
-                      className={`px-4 py-2 rounded-md cursor-pointer transition-colors ${
-                        activeTab === "community" 
-                          ? "bg-accent text-accent-foreground" 
-                          : "hover:bg-accent hover:text-accent-foreground"
-                      }`}
-                      onClick={() => handleNavigation("community")}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Users className="w-4 h-4" />
-                        Community Kitchen
-                      </div>
-                    </NavigationMenuLink>
-                  </NavigationMenuItem>
-                </NavigationMenuList>
-              </NavigationMenu>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-bold">FreshSavings</h1>
+            </div>
+            
+            <div className="flex items-center gap-1">
+              <Button
+                variant={activeTab === "landing" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setActiveTab("landing")}
+                className="px-3"
+              >
+                <Home className="w-4 h-4 mr-2" />
+                Home
+              </Button>
+              <Button
+                variant={activeTab === "pantry" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => handleNavigation("pantry")}
+                className="px-3"
+              >
+                <Package className="w-4 h-4 mr-2" />
+                Pantry
+              </Button>
+              <Button
+                variant={activeTab === "recipes" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => handleNavigation("recipes")}
+                className="px-3"
+              >
+                <ChefHat className="w-4 h-4 mr-2" />
+                Recipe Generator
+              </Button>
+              <Button
+                variant={activeTab === "community" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => handleNavigation("community")}
+                className="px-3"
+              >
+                <Users className="w-4 h-4 mr-2" />
+                Community Kitchen
+              </Button>
             </div>
             
             <Button
@@ -153,18 +132,17 @@ const Index = () => {
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setActiveTab("landing")}
-              >
-                <Home className="w-4 h-4 mr-2" />
-                Home
-              </Button>
               <h1 className="text-xl font-bold">FreshSavings</h1>
             </div>
             
             <div className="flex items-center gap-2">
+              <Button
+                variant={activeTab === "landing" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setActiveTab("landing")}
+              >
+                <Home className="w-4 h-4" />
+              </Button>
               <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
                 <SheetTrigger asChild>
                   <Button variant="ghost" size="sm">
