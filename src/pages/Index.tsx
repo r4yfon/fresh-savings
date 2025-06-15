@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import AuthComponent from "@/components/auth/AuthComponent";
@@ -31,6 +32,11 @@ const Index = () => {
     }
   };
 
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    setActiveTab("landing");
+  };
+
   // If no session and not on landing page, show auth
   if (!session && activeTab !== "landing" && activeTab !== "auth") {
     return (
@@ -52,30 +58,6 @@ const Index = () => {
     setIsMobileMenuOpen(false);
   };
 
-  if (activeTab === "landing") {
-    return <LandingPage onGetStarted={handleGetStarted} />;
-  }
-
-  if (activeTab === "auth" || (!session && activeTab !== "landing")) {
-    return (
-      <div className="container mx-auto p-4">
-        <div className="max-w-md mx-auto">
-          <AuthComponent />
-        </div>
-      </div>
-    );
-  }
-
-  if (!session) {
-    return (
-      <div className="container mx-auto p-4">
-        <div className="max-w-md mx-auto">
-          <AuthComponent />
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen">
       {/* Desktop Navigation */}
@@ -96,41 +78,67 @@ const Index = () => {
                 <Home className="w-4 h-4 mr-2" />
                 Home
               </Button>
-              <Button
-                variant={activeTab === "pantry" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => handleNavigation("pantry")}
-                className="px-3"
-              >
-                <Package className="w-4 h-4 mr-2" />
-                Pantry
-              </Button>
-              <Button
-                variant={activeTab === "recipes" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => handleNavigation("recipes")}
-                className="px-3"
-              >
-                <ChefHat className="w-4 h-4 mr-2" />
-                Recipe Generator
-              </Button>
-              <Button
-                variant={activeTab === "community" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => handleNavigation("community")}
-                className="px-3"
-              >
-                <Users className="w-4 h-4 mr-2" />
-                Community Kitchen
-              </Button>
+              
+              {session ? (
+                <>
+                  <Button
+                    variant={activeTab === "pantry" ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => handleNavigation("pantry")}
+                    className="px-3"
+                  >
+                    <Package className="w-4 h-4 mr-2" />
+                    Pantry
+                  </Button>
+                  <Button
+                    variant={activeTab === "recipes" ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => handleNavigation("recipes")}
+                    className="px-3"
+                  >
+                    <ChefHat className="w-4 h-4 mr-2" />
+                    Recipe Generator
+                  </Button>
+                  <Button
+                    variant={activeTab === "community" ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => handleNavigation("community")}
+                    className="px-3"
+                  >
+                    <Users className="w-4 h-4 mr-2" />
+                    Community Kitchen
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setActiveTab("auth")}
+                    className="px-3"
+                  >
+                    Login
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setActiveTab("auth")}
+                    className="px-3"
+                  >
+                    Sign Up
+                  </Button>
+                </>
+              )}
             </div>
             
-            <Button
-              variant="outline"
-              onClick={() => supabase.auth.signOut()}
-            >
-              Sign Out
-            </Button>
+            {session && (
+              <Button
+                variant="outline"
+                onClick={handleSignOut}
+              >
+                Sign Out
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -159,39 +167,60 @@ const Index = () => {
                 </PopoverTrigger>
                 <PopoverContent side="bottom" align="end" className="w-56 p-2">
                   <div className="flex flex-col gap-1">
-                    <Button
-                      variant={activeTab === "pantry" ? "default" : "ghost"}
-                      className="justify-start"
-                      onClick={() => handleNavigation("pantry")}
-                    >
-                      <Package className="w-4 h-4 mr-2" />
-                      Pantry
-                    </Button>
-                    <Button
-                      variant={activeTab === "recipes" ? "default" : "ghost"}
-                      className="justify-start"
-                      onClick={() => handleNavigation("recipes")}
-                    >
-                      <ChefHat className="w-4 h-4 mr-2" />
-                      Recipe Generator
-                    </Button>
-                    <Button
-                      variant={activeTab === "community" ? "default" : "ghost"}
-                      className="justify-start"
-                      onClick={() => handleNavigation("community")}
-                    >
-                      <Users className="w-4 h-4 mr-2" />
-                      Community Kitchen
-                    </Button>
-                    <div className="border-t pt-2 mt-2">
-                      <Button
-                        variant="outline"
-                        className="w-full justify-start"
-                        onClick={() => supabase.auth.signOut()}
-                      >
-                        Sign Out
-                      </Button>
-                    </div>
+                    {session ? (
+                      <>
+                        <Button
+                          variant={activeTab === "pantry" ? "default" : "ghost"}
+                          className="justify-start"
+                          onClick={() => handleNavigation("pantry")}
+                        >
+                          <Package className="w-4 h-4 mr-2" />
+                          Pantry
+                        </Button>
+                        <Button
+                          variant={activeTab === "recipes" ? "default" : "ghost"}
+                          className="justify-start"
+                          onClick={() => handleNavigation("recipes")}
+                        >
+                          <ChefHat className="w-4 h-4 mr-2" />
+                          Recipe Generator
+                        </Button>
+                        <Button
+                          variant={activeTab === "community" ? "default" : "ghost"}
+                          className="justify-start"
+                          onClick={() => handleNavigation("community")}
+                        >
+                          <Users className="w-4 h-4 mr-2" />
+                          Community Kitchen
+                        </Button>
+                        <div className="border-t pt-2 mt-2">
+                          <Button
+                            variant="outline"
+                            className="w-full justify-start"
+                            onClick={handleSignOut}
+                          >
+                            Sign Out
+                          </Button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <Button
+                          variant="ghost"
+                          className="justify-start"
+                          onClick={() => handleNavigation("auth")}
+                        >
+                          Login
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="justify-start"
+                          onClick={() => handleNavigation("auth")}
+                        >
+                          Sign Up
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </PopoverContent>
               </Popover>
@@ -201,22 +230,38 @@ const Index = () => {
       </div>
 
       {/* Content */}
-      <div className="container mx-auto p-4">
-        {activeTab === "pantry" && (
-          <PantryManager userId={session?.user?.id || ""} />
-        )}
+      {activeTab === "landing" ? (
+        <LandingPage onGetStarted={handleGetStarted} />
+      ) : activeTab === "auth" || (!session && activeTab !== "landing") ? (
+        <div className="container mx-auto p-4">
+          <div className="max-w-md mx-auto">
+            <AuthComponent />
+          </div>
+        </div>
+      ) : !session ? (
+        <div className="container mx-auto p-4">
+          <div className="max-w-md mx-auto">
+            <AuthComponent />
+          </div>
+        </div>
+      ) : (
+        <div className="container mx-auto p-4">
+          {activeTab === "pantry" && (
+            <PantryManager userId={session?.user?.id || ""} />
+          )}
 
-        {activeTab === "recipes" && (
-          <RecipeGenerator 
-            userId={session?.user?.id || ""} 
-            onNavigateToPantry={() => setActiveTab("pantry")}
-          />
-        )}
+          {activeTab === "recipes" && (
+            <RecipeGenerator 
+              userId={session?.user?.id || ""} 
+              onNavigateToPantry={() => setActiveTab("pantry")}
+            />
+          )}
 
-        {activeTab === "community" && (
-          <FoodContributions userId={session?.user?.id || ""} />
-        )}
-      </div>
+          {activeTab === "community" && (
+            <FoodContributions userId={session?.user?.id || ""} />
+          )}
+        </div>
+      )}
     </div>
   );
 };

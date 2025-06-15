@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Calendar, Settings, Apple, Carrot, Milk, Beef, Wheat, Utensils, Package2, Snowflake, HelpCircle, Package, Share, SquareSigma } from "lucide-react";
+import { Plus, Trash2, Calendar, Settings, Apple, Carrot, Milk, Beef, Wheat, Utensils, Package2, Snowflake, HelpCircle, Package, Share, Sigma } from "lucide-react";
 import { format } from "date-fns";
 
 interface PantryItem {
@@ -40,7 +40,7 @@ const categoryIcons = {
 };
 
 const categories = [
-  { value: "all", label: "All Categories", icon: SquareSigma },
+  { value: "all", label: "All Categories", icon: Sigma },
   { value: "fruits", label: "Fruits", icon: Apple },
   { value: "vegetables", label: "Vegetables", icon: Carrot },
   { value: "dairy", label: "Dairy", icon: Milk },
@@ -487,14 +487,14 @@ const PantryManager = ({ userId }: PantryManagerProps) => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="absolute top-2 right-2 text-red-600 hover:text-red-700 hover:bg-red-50 h-10 w-10 p-0"
+                    className="absolute top-2 right-2 text-red-600 hover:text-red-700 hover:bg-red-50 h-12 w-12 p-0"
                     onClick={(e) => {
                       e.stopPropagation();
                       deleteItemMutation.mutate(item.id);
                     }}
                     disabled={deleteItemMutation.isPending}
                   >
-                    <Trash2 className="w-5 h-5" />
+                    <Trash2 className="w-6 h-6" />
                   </Button>
 
                   <div className="flex flex-col items-start text-left space-y-3">
@@ -513,14 +513,11 @@ const PantryManager = ({ userId }: PantryManagerProps) => {
                       )}
                       <div className="space-y-1">
                         <h3 className="font-semibold text-lg">{item.name}</h3>
+                        {/* Category · Quantity layout */}
                         <p className="text-sm text-muted-foreground">
+                          {item.category ? `${item.category.charAt(0).toUpperCase() + item.category.slice(1)} · ` : ''}
                           {item.quantity} {item.unit}
                         </p>
-                        {item.category && (
-                          <p className="text-xs text-muted-foreground capitalize">
-                            {item.category}
-                          </p>
-                        )}
                       </div>
                     </div>
 

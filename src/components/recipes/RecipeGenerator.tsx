@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -321,30 +320,6 @@ const RecipeGenerator = ({ userId, onNavigateToPantry }: RecipeGeneratorProps) =
         </Card>
       ) : (
         <div className="space-y-6">
-          {/* Selected Ingredients Section */}
-          {selectedIngredients.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Selected Ingredients</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  {selectedIngredients.map((ingredient, index) => (
-                    <Badge key={index} variant="secondary" className="text-sm">
-                      {ingredient}
-                      <button
-                        onClick={() => removeIngredient(index)}
-                        className="ml-2 hover:text-red-600"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </Badge>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
           {/* Main content grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Select Pantry Items Section - Show items directly */}
@@ -459,6 +434,30 @@ const RecipeGenerator = ({ userId, onNavigateToPantry }: RecipeGeneratorProps) =
                 )}
               </Button>
             </div>
+          )}
+
+          {/* Selected Ingredients Section - moved here to prevent jumpiness */}
+          {selectedIngredients.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Selected Ingredients</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {selectedIngredients.map((ingredient, index) => (
+                    <Badge key={index} variant="secondary" className="text-sm">
+                      {ingredient}
+                      <button
+                        onClick={() => removeIngredient(index)}
+                        className="ml-2 hover:text-red-600"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           )}
 
           {/* Generated Recipe Display */}
