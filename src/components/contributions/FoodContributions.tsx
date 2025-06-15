@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, MapPin, Calendar, Package, Users, Share, Edit, StopCircle } from "lucide-react";
+import { Plus, MapPin, Calendar, Package, Users, Share, Edit, StopCircle, Apple, Beef, Wheat, Milk, Archive, Cookie, Utensils, Snowflake } from "lucide-react";
 import { format } from "date-fns";
 
 interface FoodContribution {
@@ -39,9 +39,11 @@ interface FoodContributionsProps {
 }
 
 const FoodContributions = ({ userId }: FoodContributionsProps) => {
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingContribution, setEditingContribution] = useState<FoodContribution | null>(null);
+  const [selectedPantryItem, setSelectedPantryItem] = useState<PantryItem | null>(null);
+  const [shareQuantity, setShareQuantity] = useState(1);
   const [formData, setFormData] = useState({
     name: "",
     quantity: 1,
@@ -65,6 +67,30 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
   // Capitalize input function
   const capitalizeWords = (str: string) => {
     return str.toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
+  };
+
+  // Get category icon
+  const getCategoryIcon = (category: string | null) => {
+    switch (category?.toLowerCase()) {
+      case 'fruits':
+        return Apple;
+      case 'vegetables':
+        return Apple;
+      case 'meat':
+        return Beef;
+      case 'grains':
+        return Wheat;
+      case 'dairy':
+        return Milk;
+      case 'canned':
+        return Archive;
+      case 'baked-goods':
+        return Cookie;
+      case 'frozen':
+        return Snowflake;
+      default:
+        return Utensils;
+    }
   };
 
   const { data: contributions = [], isLoading: contributionsLoading } = useQuery({
@@ -110,13 +136,13 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
   });
 
   const addContributionMutation = useMutation({
-    mutationFn: async (newContribution: typeof formData) => {
+    mutationFn: async (newContribution: typeof formData & { shareQuantity: number }) => {
       const { data, error } = await supabase
         .from('food_contributions')
         .insert({
           contributor_id: userId,
           name: capitalizeWords(newContribution.name),
-          quantity: newContribution.quantity,
+          quantity: newContribution.shareQuantity,
           unit: newContribution.unit,
           description: newContribution.description || null,
           location: newContribution.location || null,
@@ -133,7 +159,9 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['food-contributions'] });
       queryClient.invalidateQueries({ queryKey: ['my-food-contributions'] });
-      setIsAddDialogOpen(false);
+      setIsShareDialogOpen(false);
+      setSelectedPantryItem(null);
+      setShareQuantity(1);
       setFormData({ name: "", quantity: 1, unit: "pieces", description: "", location: "", available_until: "", category: "" });
       toast({
         title: "Success",
@@ -182,12 +210,14 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
 
   const stopSharingMutation = useMutation({
     mutationFn: async (contributionId: string) => {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('food_contributions')
         .update({ status: 'unavailable' })
-        .eq('id', contributionId);
+        .eq('id', contributionId)
+        .eq('contributor_id', userId);
       
       if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['food-contributions'] });
@@ -206,13 +236,59 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
     },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const removePantryItemMutation = useMutation({
+    mutationFn: async (itemId: string) => {
+      const { error } = await supabase
+        .from('pantry_items')
+        .delete()
+        .eq('id', itemId)
+        .eq('user_id', userId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pantry-items'] });
+      toast({
+        title: "Success",
+        description: "Item removed from pantry",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to remove item from pantry",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleShareSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    addContributionMutation.mutate(formData);
+    if (selectedPantryItem && shareQuantity > selectedPantryItem.quantity) {
+      toast({
+        title: "Error",
+        description: "Cannot share more than you have in your pantry",
+        variant: "destructive",
+      });
+      return;
+    }
+    addContributionMutation.mutate({ ...formData, shareQuantity });
   };
 
   const handleEditSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (editingContribution && selectedPantryItem) {
+      const maxAllowed = selectedPantryItem.quantity + editingContribution.quantity;
+      if (formData.quantity > maxAllowed) {
+        toast({
+          title: "Error",
+          description: `Cannot share more than ${maxAllowed} ${formData.unit}`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+    
     if (editingContribution) {
       updateContributionMutation.mutate({
         id: editingContribution.id,
@@ -229,20 +305,9 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
     }
   };
 
-  const handleOpenAddDialog = () => {
-    setFormData({
-      name: "",
-      quantity: 1,
-      unit: "pieces",
-      description: "",
-      location: "",
-      available_until: getTomorrowDate(),
-      category: "",
-    });
-    setIsAddDialogOpen(true);
-  };
-
   const handleSharePantryItem = (item: PantryItem) => {
+    setSelectedPantryItem(item);
+    setShareQuantity(Math.min(1, item.quantity));
     setFormData({
       name: item.name,
       quantity: item.quantity,
@@ -252,11 +317,15 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
       available_until: getTomorrowDate(),
       category: item.category || "",
     });
-    setIsAddDialogOpen(true);
+    setIsShareDialogOpen(true);
   };
 
   const handleEditContribution = (contribution: FoodContribution) => {
     setEditingContribution(contribution);
+    const relatedPantryItem = pantryItems.find(
+      item => item.name.toLowerCase() === contribution.name.toLowerCase()
+    );
+    setSelectedPantryItem(relatedPantryItem || null);
     setFormData({
       name: contribution.name,
       quantity: contribution.quantity,
@@ -273,6 +342,10 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
     stopSharingMutation.mutate(contributionId);
   };
 
+  const handleRemoveFromPantry = (item: PantryItem) => {
+    removePantryItemMutation.mutate(item.id);
+  };
+
   // Get shared pantry item IDs
   const sharedPantryItemNames = myContributions
     .filter(c => c.status === 'available')
@@ -286,120 +359,6 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Community Kitchen</h2>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={handleOpenAddDialog}>
-              <Plus className="w-4 h-4 mr-2" />
-              Share Food
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Share Food with Community</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Food Item</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                />
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="quantity">Quantity</Label>
-                  <Input
-                    id="quantity"
-                    type="number"
-                    min="1"
-                    value={formData.quantity}
-                    onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) })}
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="unit">Unit</Label>
-                  <Select
-                    value={formData.unit}
-                    onValueChange={(value) => setFormData({ ...formData, unit: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pieces">Pieces</SelectItem>
-                      <SelectItem value="kilograms">Kilograms</SelectItem>
-                      <SelectItem value="litres">Litres</SelectItem>
-                      <SelectItem value="bags">Bags</SelectItem>
-                      <SelectItem value="boxes">Boxes</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="category">Category</Label>
-                <Select
-                  value={formData.category}
-                  onValueChange={(value) => setFormData({ ...formData, category: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="vegetables">Vegetables</SelectItem>
-                    <SelectItem value="fruits">Fruits</SelectItem>
-                    <SelectItem value="dairy">Dairy</SelectItem>
-                    <SelectItem value="meat">Meat</SelectItem>
-                    <SelectItem value="grains">Grains</SelectItem>
-                    <SelectItem value="baked-goods">Baked Goods</SelectItem>
-                    <SelectItem value="canned">Canned Goods</SelectItem>
-                    <SelectItem value="frozen">Frozen</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="description">Description (Optional)</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Add any additional details..."
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="location">Pickup Location (Optional)</Label>
-                <Input
-                  id="location"
-                  value={formData.location}
-                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  placeholder="e.g., Front porch, Building lobby..."
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="available_until">Available Until (Optional)</Label>
-                <Input
-                  id="available_until"
-                  type="date"
-                  value={formData.available_until}
-                  onChange={(e) => setFormData({ ...formData, available_until: e.target.value })}
-                />
-              </div>
-              
-              <Button type="submit" className="w-full" disabled={addContributionMutation.isPending}>
-                {addContributionMutation.isPending ? "Sharing..." : "Share Food"}
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
       </div>
 
       {/* My Pantry Items Section */}
@@ -412,21 +371,25 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
               const sharedContribution = myContributions.find(
                 c => c.name.toLowerCase() === item.name.toLowerCase() && c.status === 'available'
               );
+              const CategoryIcon = getCategoryIcon(item.category);
               
               return (
                 <Card key={item.id}>
                   <CardContent className="p-4">
                     <div className="space-y-3">
-                      <div>
-                        <h4 className="font-semibold">{item.name}</h4>
-                        <p className="text-sm text-muted-foreground">
-                          {item.quantity} {item.unit}
-                        </p>
-                        {item.category && (
-                          <p className="text-xs text-muted-foreground capitalize">
-                            {item.category}
+                      <div className="flex items-center gap-2">
+                        <CategoryIcon className="w-5 h-5 text-muted-foreground" />
+                        <div className="flex-1">
+                          <h4 className="font-semibold">{item.name}</h4>
+                          <p className="text-sm text-muted-foreground">
+                            {item.quantity} {item.unit}
                           </p>
-                        )}
+                          {item.category && (
+                            <p className="text-xs text-muted-foreground capitalize">
+                              {item.category}
+                            </p>
+                          )}
+                        </div>
                       </div>
                       
                       <div className="flex gap-2">
@@ -459,6 +422,14 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
                               <StopCircle className="w-4 h-4 mr-2" />
                               Stop Sharing
                             </Button>
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => handleRemoveFromPantry(item)}
+                              className="flex-1"
+                            >
+                              Item Shared
+                            </Button>
                           </>
                         )}
                       </div>
@@ -484,50 +455,171 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {contributions.map((contribution) => (
-              <Card key={contribution.id}>
-                <CardContent className="p-4">
-                  <div className="space-y-3">
-                    <div>
-                      <h4 className="font-semibold">{contribution.name}</h4>
-                      <p className="text-sm text-muted-foreground">
-                        {contribution.quantity} {contribution.unit}
-                      </p>
-                      {contribution.category && (
-                        <p className="text-xs text-muted-foreground capitalize">
-                          {contribution.category}
+            {contributions.map((contribution) => {
+              const CategoryIcon = getCategoryIcon(contribution.category);
+              return (
+                <Card key={contribution.id}>
+                  <CardContent className="p-4">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <CategoryIcon className="w-5 h-5 text-muted-foreground" />
+                        <div className="flex-1">
+                          <h4 className="font-semibold">{contribution.name}</h4>
+                          <p className="text-sm text-muted-foreground">
+                            {contribution.quantity} {contribution.unit}
+                          </p>
+                          {contribution.category && (
+                            <p className="text-xs text-muted-foreground capitalize">
+                              {contribution.category}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {contribution.description && (
+                        <p className="text-sm">{contribution.description}</p>
+                      )}
+                      
+                      <div className="space-y-1">
+                        {contribution.location && (
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <MapPin className="w-3 h-3" />
+                            <span>{contribution.location}</span>
+                          </div>
+                        )}
+                        {contribution.available_until && (
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Calendar className="w-3 h-3" />
+                            <span>Until: {format(new Date(contribution.available_until), 'MMM dd, yyyy')}</span>
+                          </div>
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                          Shared: {format(new Date(contribution.created_at), 'MMM dd, yyyy')}
                         </p>
-                      )}
+                      </div>
                     </div>
-                    
-                    {contribution.description && (
-                      <p className="text-sm">{contribution.description}</p>
-                    )}
-                    
-                    <div className="space-y-1">
-                      {contribution.location && (
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <MapPin className="w-3 h-3" />
-                          <span>{contribution.location}</span>
-                        </div>
-                      )}
-                      {contribution.available_until && (
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Calendar className="w-3 h-3" />
-                          <span>Until: {format(new Date(contribution.available_until), 'MMM dd, yyyy')}</span>
-                        </div>
-                      )}
-                      <p className="text-xs text-muted-foreground">
-                        Shared: {format(new Date(contribution.created_at), 'MMM dd, yyyy')}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         )}
       </div>
+
+      {/* Share Dialog */}
+      <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Share Food with Community</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleShareSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Food Item</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                required
+                readOnly
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="shareQuantity">Quantity to Share</Label>
+                <Input
+                  id="shareQuantity"
+                  type="number"
+                  min="1"
+                  max={selectedPantryItem?.quantity || 1}
+                  value={shareQuantity}
+                  onChange={(e) => setShareQuantity(parseInt(e.target.value))}
+                  required
+                />
+                <p className="text-xs text-muted-foreground">
+                  Available: {selectedPantryItem?.quantity || 0} {formData.unit}
+                </p>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="unit">Unit</Label>
+                <Select
+                  value={formData.unit}
+                  onValueChange={(value) => setFormData({ ...formData, unit: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pieces">Pieces</SelectItem>
+                    <SelectItem value="kilograms">Kilograms</SelectItem>
+                    <SelectItem value="litres">Litres</SelectItem>
+                    <SelectItem value="bags">Bags</SelectItem>
+                    <SelectItem value="boxes">Boxes</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="category">Category</Label>
+              <Select
+                value={formData.category}
+                onValueChange={(value) => setFormData({ ...formData, category: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="vegetables">Vegetables</SelectItem>
+                  <SelectItem value="fruits">Fruits</SelectItem>
+                  <SelectItem value="dairy">Dairy</SelectItem>
+                  <SelectItem value="meat">Meat</SelectItem>
+                  <SelectItem value="grains">Grains</SelectItem>
+                  <SelectItem value="baked-goods">Baked Goods</SelectItem>
+                  <SelectItem value="canned">Canned Goods</SelectItem>
+                  <SelectItem value="frozen">Frozen</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="description">Description (Optional)</Label>
+              <Textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Add any additional details..."
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="location">Pickup Location (Optional)</Label>
+              <Input
+                id="location"
+                value={formData.location}
+                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                placeholder="e.g., Front porch, Building lobby..."
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="available_until">Available Until (Optional)</Label>
+              <Input
+                id="available_until"
+                type="date"
+                value={formData.available_until}
+                onChange={(e) => setFormData({ ...formData, available_until: e.target.value })}
+              />
+            </div>
+            
+            <Button type="submit" className="w-full" disabled={addContributionMutation.isPending}>
+              {addContributionMutation.isPending ? "Sharing..." : "Share Food"}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
@@ -543,20 +635,25 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
+                readOnly
               />
             </div>
             
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="edit-quantity">Quantity</Label>
+                <Label htmlFor="edit-quantity">Shared Quantity</Label>
                 <Input
                   id="edit-quantity"
                   type="number"
                   min="1"
+                  max={selectedPantryItem ? selectedPantryItem.quantity + (editingContribution?.quantity || 0) : formData.quantity}
                   value={formData.quantity}
                   onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) })}
                   required
                 />
+                <p className="text-xs text-muted-foreground">
+                  Max available: {selectedPantryItem ? selectedPantryItem.quantity + (editingContribution?.quantity || 0) : formData.quantity} {formData.unit}
+                </p>
               </div>
               
               <div className="space-y-2">
