@@ -12,16 +12,16 @@ import { format } from "date-fns";
 interface FoodContribution {
   id: string;
   title: string;
-  description: string;
-  location: string;
-  available_until: string;
-  quantity: number;
-  is_active: boolean;
+  description: string | null;
+  location: string | null;
+  available_until: string | null;
+  quantity: number | null;
+  is_active: boolean | null;
   created_at: string;
-  user_id: string;
+  user_id: string | null;
   profiles: {
     full_name: string | null;
-  };
+  } | null;
 }
 
 interface FoodContributionsProps {
@@ -47,7 +47,7 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data as FoodContribution[];
+      return data;
     },
   });
 
@@ -61,7 +61,7 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data as FoodContribution[];
+      return data;
     },
   });
 
@@ -97,14 +97,16 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
     stopSharingMutation.mutate(contributionId);
   };
 
-  const isExpiringSoon = (availableUntil: string) => {
+  const isExpiringSoon = (availableUntil: string | null) => {
+    if (!availableUntil) return false;
     const expiry = new Date(availableUntil);
     const now = new Date();
     const hoursUntilExpiry = (expiry.getTime() - now.getTime()) / (1000 * 60 * 60);
     return hoursUntilExpiry <= 24 && hoursUntilExpiry > 0;
   };
 
-  const isExpired = (availableUntil: string) => {
+  const isExpired = (availableUntil: string | null) => {
+    if (!availableUntil) return false;
     return new Date(availableUntil) <= new Date();
   };
 
@@ -150,30 +152,36 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <p className="text-sm text-muted-foreground">{contribution.description}</p>
+                  {contribution.description && (
+                    <p className="text-sm text-muted-foreground">{contribution.description}</p>
+                  )}
                   
-                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                    <MapPin className="w-4 h-4" />
-                    <span>{contribution.location}</span>
-                  </div>
+                  {contribution.location && (
+                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                      <MapPin className="w-4 h-4" />
+                      <span>{contribution.location}</span>
+                    </div>
+                  )}
                   
                   <div className="flex items-center gap-1 text-sm text-muted-foreground">
                     <Package className="w-4 h-4" />
-                    <span>Quantity: {contribution.quantity}</span>
+                    <span>Quantity: {contribution.quantity || 1}</span>
                   </div>
                   
-                  <div className={`flex items-center gap-1 text-sm ${
-                    isExpired(contribution.available_until) 
-                      ? 'text-red-600' 
-                      : isExpiringSoon(contribution.available_until) 
-                        ? 'text-orange-600' 
-                        : 'text-muted-foreground'
-                  }`}>
-                    <Calendar className="w-4 h-4" />
-                    <span>
-                      Available until: {format(new Date(contribution.available_until), 'MMM dd, yyyy HH:mm')}
-                    </span>
-                  </div>
+                  {contribution.available_until && (
+                    <div className={`flex items-center gap-1 text-sm ${
+                      isExpired(contribution.available_until) 
+                        ? 'text-red-600' 
+                        : isExpiringSoon(contribution.available_until) 
+                          ? 'text-orange-600' 
+                          : 'text-muted-foreground'
+                    }`}>
+                      <Calendar className="w-4 h-4" />
+                      <span>
+                        Available until: {format(new Date(contribution.available_until), 'MMM dd, yyyy HH:mm')}
+                      </span>
+                    </div>
+                  )}
 
                   {contribution.is_active && (
                     <Button
@@ -208,7 +216,7 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
               .filter(contribution => contribution.user_id !== userId)
               .map((contribution) => (
               <Card key={contribution.id} className={`${
-                isExpired(contribution.available_until) ? 'opacity-60' : ''
+                contribution.available_until && isExpired(contribution.available_until) ? 'opacity-60' : ''
               }`}>
                 <CardHeader>
                   <CardTitle className="text-lg">{contribution.title}</CardTitle>
@@ -217,38 +225,44 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
                   </p>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <p className="text-sm text-muted-foreground">{contribution.description}</p>
+                  {contribution.description && (
+                    <p className="text-sm text-muted-foreground">{contribution.description}</p>
+                  )}
                   
-                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                    <MapPin className="w-4 h-4" />
-                    <span>{contribution.location}</span>
-                  </div>
+                  {contribution.location && (
+                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                      <MapPin className="w-4 h-4" />
+                      <span>{contribution.location}</span>
+                    </div>
+                  )}
                   
                   <div className="flex items-center gap-1 text-sm text-muted-foreground">
                     <Package className="w-4 h-4" />
-                    <span>Quantity: {contribution.quantity}</span>
+                    <span>Quantity: {contribution.quantity || 1}</span>
                   </div>
                   
-                  <div className={`flex items-center gap-1 text-sm ${
-                    isExpired(contribution.available_until) 
-                      ? 'text-red-600' 
-                      : isExpiringSoon(contribution.available_until) 
-                        ? 'text-orange-600' 
-                        : 'text-muted-foreground'
-                  }`}>
-                    <Calendar className="w-4 h-4" />
-                    <span>
-                      Available until: {format(new Date(contribution.available_until), 'MMM dd, yyyy HH:mm')}
-                    </span>
-                  </div>
+                  {contribution.available_until && (
+                    <div className={`flex items-center gap-1 text-sm ${
+                      isExpired(contribution.available_until) 
+                        ? 'text-red-600' 
+                        : isExpiringSoon(contribution.available_until) 
+                          ? 'text-orange-600' 
+                          : 'text-muted-foreground'
+                    }`}>
+                      <Calendar className="w-4 h-4" />
+                      <span>
+                        Available until: {format(new Date(contribution.available_until), 'MMM dd, yyyy HH:mm')}
+                      </span>
+                    </div>
+                  )}
 
-                  {isExpired(contribution.available_until) && (
+                  {contribution.available_until && isExpired(contribution.available_until) && (
                     <Badge variant="destructive" className="w-fit">
                       Expired
                     </Badge>
                   )}
 
-                  {isExpiringSoon(contribution.available_until) && !isExpired(contribution.available_until) && (
+                  {contribution.available_until && isExpiringSoon(contribution.available_until) && !isExpired(contribution.available_until) && (
                     <Badge variant="outline" className="w-fit border-orange-500 text-orange-600">
                       Expiring Soon
                     </Badge>
