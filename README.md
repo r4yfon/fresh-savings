@@ -1,6 +1,6 @@
 # FreshSavings
 
-FreshSavings is a community-driven pantry and recipe management web application. It helps users track their pantry items, share surplus food with the community, and generate recipes based on available ingredients.
+FreshSavings is a community-driven pantry and recipe management web application. It helps users track their pantry items, share surplus food with the community, and generate recipes based on available ingredients. This project is a personal remake of a university assignment [https://github.com/r4yfon/FreshSavings](https://github.com/r4yfon/FreshSavings), for the purpose of learning and improving my skills in web development.
 
 The initial version of this project was scaffolded using [lovable.dev](https://lovable.dev), providing a solid foundation for rapid prototyping. Since then, the codebase has been extensively refactored and enhanced to improve maintainability, add new features, and experiment with modern web development practices.
 
