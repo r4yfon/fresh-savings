@@ -483,35 +483,45 @@ const PantryManager = ({ userId }: PantryManagerProps) => {
                 onClick={() => handleCardClick(item.id)}
               >
                 <CardContent className="p-4">
-                  {/* Delete button in top right */}
+                  {/* Delete button in top right - made bigger */}
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="absolute top-2 right-2 text-red-600 hover:text-red-700 hover:bg-red-50 h-8 w-8 p-0"
+                    className="absolute top-2 right-2 text-red-600 hover:text-red-700 hover:bg-red-50 h-10 w-10 p-0"
                     onClick={(e) => {
                       e.stopPropagation();
                       deleteItemMutation.mutate(item.id);
                     }}
                     disabled={deleteItemMutation.isPending}
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-5 h-5" />
                   </Button>
 
                   <div className="flex flex-col items-start text-left space-y-3">
-                    {/* Icon at top - 36px */}
+                    {/* Icon at top */}
                     <IconComponent className="w-9 h-9 text-muted-foreground" />
                     
-                    {/* Item name */}
-                    <div className="space-y-1 w-full pr-12">
-                      <h3 className="font-semibold text-lg">{item.name}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {item.quantity} {item.unit}
-                      </p>
-                      {item.category && (
-                        <p className="text-xs text-muted-foreground capitalize">
-                          {item.category}
-                        </p>
+                    {/* Item name with checkbox beside it during manage mode */}
+                    <div className="flex items-center gap-2 w-full pr-12">
+                      {isManageMode && (
+                        <Checkbox
+                          id={`item-${item.id}`}
+                          checked={selectedItems.includes(item.id)}
+                          onCheckedChange={(checked) => handleItemSelection(item.id, checked as boolean)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
                       )}
+                      <div className="space-y-1">
+                        <h3 className="font-semibold text-lg">{item.name}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {item.quantity} {item.unit}
+                        </p>
+                        {item.category && (
+                          <p className="text-xs text-muted-foreground capitalize">
+                            {item.category}
+                          </p>
+                        )}
+                      </div>
                     </div>
 
                     {/* Additional info */}
@@ -526,18 +536,6 @@ const PantryManager = ({ userId }: PantryManagerProps) => {
                         <p className="text-xs text-red-600 font-medium">⚠️ Expiring soon!</p>
                       )}
                     </div>
-
-                    {/* Checkbox for manage mode */}
-                    {isManageMode && (
-                      <div className="flex items-center">
-                        <Checkbox
-                          id={`item-${item.id}`}
-                          checked={selectedItems.includes(item.id)}
-                          onCheckedChange={(checked) => handleItemSelection(item.id, checked as boolean)}
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                      </div>
-                    )}
                   </div>
                 </CardContent>
               </Card>

@@ -8,10 +8,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChefHat, Package, Plus, X, Sparkles } from "lucide-react";
+import { ChefHat, Package, Plus, X, Sparkles, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import AIRecipeGenerator from "./AIRecipeGenerator";
-import PantryItemSelector from "./PantryItemSelector";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 
@@ -32,10 +31,11 @@ interface RecipeGeneratorProps {
 
 const RecipeGenerator = ({ userId, onNavigateToPantry }: RecipeGeneratorProps) => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [isPantryModalOpen, setIsPantryModalOpen] = useState(false);
   const [selectedIngredients, setSelectedIngredients] = useState<string[]>([]);
   const [generatedRecipe, setGeneratedRecipe] = useState<any>(null);
   const [manualIngredient, setManualIngredient] = useState("");
+  const [manualQuantity, setManualQuantity] = useState(1);
+  const [manualUnit, setManualUnit] = useState("pieces");
   const [formData, setFormData] = useState({
     name: "",
     quantity: 1,
@@ -112,6 +112,34 @@ const RecipeGenerator = ({ userId, onNavigateToPantry }: RecipeGeneratorProps) =
     },
   });
 
+  const generateRecipeMutation = useMutation({
+    mutationFn: async (ingredients: string[]) => {
+      const { data, error } = await supabase.functions.invoke('generate-recipe', {
+        body: { ingredients }
+      });
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      if (data.recipe) {
+        setGeneratedRecipe(data.recipe);
+        toast({
+          title: "Recipe Generated!",
+          description: "Your AI-generated recipe is ready to save.",
+        });
+      }
+    },
+    onError: (error) => {
+      console.error('Recipe generation error:', error);
+      toast({
+        title: "Generation Failed",
+        description: "Failed to generate recipe. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     addItemMutation.mutate(formData);
@@ -128,8 +156,16 @@ const RecipeGenerator = ({ userId, onNavigateToPantry }: RecipeGeneratorProps) =
     setIsAddDialogOpen(true);
   };
 
-  const handleRecipeGenerated = (recipe: any) => {
-    setGeneratedRecipe(recipe);
+  const handleGenerateRecipe = () => {
+    if (selectedIngredients.length === 0) {
+      toast({
+        title: "No ingredients selected",
+        description: "Please select at least one ingredient to generate a recipe.",
+        variant: "destructive",
+      });
+      return;
+    }
+    generateRecipeMutation.mutate(selectedIngredients);
   };
 
   const removeIngredient = (indexToRemove: number) => {
@@ -138,14 +174,32 @@ const RecipeGenerator = ({ userId, onNavigateToPantry }: RecipeGeneratorProps) =
 
   const addManualIngredient = () => {
     if (manualIngredient.trim()) {
-      setSelectedIngredients([...selectedIngredients, capitalizeWords(manualIngredient.trim())]);
+      const ingredientWithQuantity = `${manualQuantity} ${manualUnit} ${capitalizeWords(manualIngredient.trim())}`;
+      setSelectedIngredients([...selectedIngredients, ingredientWithQuantity]);
       setManualIngredient("");
+      setManualQuantity(1);
+      setManualUnit("pieces");
     }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       addManualIngredient();
+    }
+  };
+
+  const togglePantryItem = (item: PantryItem) => {
+    const ingredientText = `${item.quantity} ${item.unit} ${item.name}`;
+    const isSelected = selectedIngredients.some(ingredient => 
+      ingredient.includes(item.name)
+    );
+    
+    if (isSelected) {
+      setSelectedIngredients(selectedIngredients.filter(ingredient => 
+        !ingredient.includes(item.name)
+      ));
+    } else {
+      setSelectedIngredients([...selectedIngredients, ingredientText]);
     }
   };
 
@@ -293,52 +347,117 @@ const RecipeGenerator = ({ userId, onNavigateToPantry }: RecipeGeneratorProps) =
 
           {/* Main content grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Select Pantry Items Section */}
+            {/* Select Pantry Items Section - Show items directly */}
             <Card>
               <CardHeader>
                 <CardTitle>Select Pantry Items</CardTitle>
               </CardHeader>
               <CardContent>
-                <Button
-                  variant="outline"
-                  onClick={() => setIsPantryModalOpen(true)}
-                  className="w-full"
-                >
-                  <Package className="w-4 h-4 mr-2" />
-                  Choose from Pantry
-                </Button>
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {pantryItems.map((item) => {
+                    const isSelected = selectedIngredients.some(ingredient => 
+                      ingredient.includes(item.name)
+                    );
+                    return (
+                      <div
+                        key={item.id}
+                        className={`p-2 border rounded cursor-pointer ${
+                          isSelected ? 'bg-primary/10 border-primary' : 'hover:bg-muted'
+                        }`}
+                        onClick={() => togglePantryItem(item)}
+                      >
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium">{item.name}</span>
+                          <span className="text-sm text-muted-foreground">
+                            {item.quantity} {item.unit}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </CardContent>
             </Card>
 
-            {/* Manual Ingredients Section */}
+            {/* Manual Ingredients Section - Add quantity and unit */}
             <Card>
               <CardHeader>
                 <CardTitle>Manually Add Ingredients</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex gap-2">
-                  <Input
-                    value={manualIngredient}
-                    onChange={(e) => setManualIngredient(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    placeholder="Enter ingredient name..."
-                    className="flex-1"
-                  />
-                  <Button onClick={addManualIngredient} disabled={!manualIngredient.trim()}>
-                    <Plus className="w-4 h-4" />
+                <div className="space-y-3">
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <Label htmlFor="manual-quantity" className="text-xs">Quantity</Label>
+                      <Input
+                        id="manual-quantity"
+                        type="number"
+                        min="1"
+                        value={manualQuantity}
+                        onChange={(e) => setManualQuantity(parseInt(e.target.value))}
+                        className="text-sm"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="manual-unit" className="text-xs">Unit</Label>
+                      <Select value={manualUnit} onValueChange={setManualUnit}>
+                        <SelectTrigger className="text-sm">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pieces">Pieces</SelectItem>
+                          <SelectItem value="cups">Cups</SelectItem>
+                          <SelectItem value="tbsp">Tbsp</SelectItem>
+                          <SelectItem value="tsp">Tsp</SelectItem>
+                          <SelectItem value="grams">Grams</SelectItem>
+                          <SelectItem value="kg">Kg</SelectItem>
+                          <SelectItem value="ml">ML</SelectItem>
+                          <SelectItem value="litres">Litres</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="manual-ingredient" className="text-xs">Ingredient</Label>
+                      <Input
+                        id="manual-ingredient"
+                        value={manualIngredient}
+                        onChange={(e) => setManualIngredient(e.target.value)}
+                        onKeyPress={handleKeyPress}
+                        placeholder="Enter name..."
+                        className="text-sm"
+                      />
+                    </div>
+                  </div>
+                  <Button onClick={addManualIngredient} disabled={!manualIngredient.trim()} className="w-full">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Ingredient
                   </Button>
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Simple AI Recipe Generator Button */}
+          {/* Simple AI Recipe Generator Button - Remove card styling */}
           {selectedIngredients.length > 0 && (
             <div className="flex justify-center">
-              <AIRecipeGenerator
-                selectedIngredients={selectedIngredients}
-                onRecipeGenerated={handleRecipeGenerated}
-              />
+              <Button 
+                onClick={handleGenerateRecipe}
+                disabled={selectedIngredients.length === 0 || generateRecipeMutation.isPending}
+                className="w-full"
+                size="lg"
+              >
+                {generateRecipeMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Generating Recipe...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Generate Recipe ({selectedIngredients.length} ingredients)
+                  </>
+                )}
+              </Button>
             </div>
           )}
 
@@ -376,24 +495,6 @@ const RecipeGenerator = ({ userId, onNavigateToPantry }: RecipeGeneratorProps) =
               </CardContent>
             </Card>
           )}
-
-          {/* Pantry Item Selector Modal - Made bigger */}
-          <Dialog open={isPantryModalOpen} onOpenChange={setIsPantryModalOpen}>
-            <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
-              <DialogHeader>
-                <DialogTitle>Choose from Your Pantry</DialogTitle>
-              </DialogHeader>
-              <div className="overflow-y-auto pr-2" style={{ maxHeight: 'calc(80vh - 120px)' }}>
-                <PantryItemSelector
-                  userId={userId}
-                  isOpen={isPantryModalOpen}
-                  onClose={() => setIsPantryModalOpen(false)}
-                  selectedIngredients={selectedIngredients}
-                  onIngredientsChange={setSelectedIngredients}
-                />
-              </div>
-            </DialogContent>
-          </Dialog>
         </div>
       )}
     </div>
