@@ -122,10 +122,21 @@ const IngredientSelector = ({ userId, selectedIngredients, onIngredientsChange }
           </div>
         )}
 
-        {/* Add custom ingredient */}
+        {/* Add custom ingredient - Changed order to ingredient -> quantity -> unit */}
         <div className="space-y-3">
           <h4 className="font-medium">Add Other Ingredients:</h4>
           <div className="grid grid-cols-3 gap-2">
+            <div className="space-y-1">
+              <Label htmlFor="ingredient" className="text-xs">Ingredient</Label>
+              <Input
+                id="ingredient"
+                placeholder="flour, sugar, etc."
+                value={customIngredient}
+                onChange={(e) => setCustomIngredient(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleAddCustomIngredient()}
+                className="h-8"
+              />
+            </div>
             <div className="space-y-1">
               <Label htmlFor="quantity" className="text-xs">Quantity</Label>
               <Input
@@ -148,17 +159,6 @@ const IngredientSelector = ({ userId, selectedIngredients, onIngredientsChange }
                   <SelectItem value="pieces">Pieces</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="ingredient" className="text-xs">Ingredient</Label>
-              <Input
-                id="ingredient"
-                placeholder="flour, sugar, etc."
-                value={customIngredient}
-                onChange={(e) => setCustomIngredient(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleAddCustomIngredient()}
-                className="h-8"
-              />
             </div>
           </div>
           <Button onClick={handleAddCustomIngredient} variant="outline" className="w-full">

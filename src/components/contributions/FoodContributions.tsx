@@ -1,30 +1,27 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, MapPin, Calendar, Users, Check, Share2 } from "lucide-react";
+import { Users, MapPin, Calendar, Package } from "lucide-react";
 import { format } from "date-fns";
 
 interface FoodContribution {
   id: string;
-  name: string;
+  title: string;
+  description: string;
+  location: string;
+  available_until: string;
   quantity: number;
-  unit: string;
-  category: string | null;
-  description: string | null;
-  location: string | null;
-  available_until: string | null;
-  status: string;
+  is_active: boolean;
   created_at: string;
-  contributor_id: string;
+  user_id: string;
+  profiles: {
+    full_name: string | null;
+  };
 }
 
 interface FoodContributionsProps {
@@ -32,39 +29,21 @@ interface FoodContributionsProps {
 }
 
 const FoodContributions = ({ userId }: FoodContributionsProps) => {
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    name: "",
-    quantity: 1,
-    unit: "pieces",
-    category: "",
-    description: "",
-    location: "",
-    available_until: "",
-  });
-
   const { toast } = useToast();
   const queryClient = useQueryClient();
-
-  // Auto-fill available_until date to 1 week from now
-  const getOneWeekFromNow = () => {
-    const date = new Date();
-    date.setDate(date.getDate() + 7);
-    return date.toISOString().split('T')[0];
-  };
-
-  // Capitalize input function
-  const capitalizeWords = (str: string) => {
-    return str.toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
-  };
 
   const { data: contributions = [], isLoading } = useQuery({
     queryKey: ['food-contributions'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('food_contributions')
-        .select('*')
-        .eq('status', 'available')
+        .select(`
+          *,
+          profiles (
+            full_name
+          )
+        `)
+        .eq('is_active', true)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
@@ -78,7 +57,7 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
       const { data, error } = await supabase
         .from('food_contributions')
         .select('*')
-        .eq('contributor_id', userId)
+        .eq('user_id', userId)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
@@ -86,420 +65,194 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
     },
   });
 
-  const addContributionMutation = useMutation({
-    mutationFn: async (newContribution: typeof formData) => {
-      const { data, error } = await supabase
-        .from('food_contributions')
-        .insert({
-          contributor_id: userId,
-          name: capitalizeWords(newContribution.name),
-          quantity: newContribution.quantity,
-          unit: newContribution.unit,
-          category: newContribution.category || null,
-          description: newContribution.description || null,
-          location: newContribution.location || null,
-          available_until: newContribution.available_until || null,
-          status: 'available',
-        })
-        .select()
-        .single();
-      
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['food-contributions'] });
-      queryClient.invalidateQueries({ queryKey: ['my-food-contributions'] });
-      setIsAddDialogOpen(false);
-      setFormData({
-        name: "",
-        quantity: 1,
-        unit: "pieces",
-        category: "",
-        description: "",
-        location: "",
-        available_until: "",
-      });
-      toast({
-        title: "Success",
-        description: "Food item shared with the community!",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: "Failed to share food item",
-        variant: "destructive",
-      });
-      console.error('Error adding contribution:', error);
-    },
-  });
-
-  const collectContributionMutation = useMutation({
-    mutationFn: async (contributionId: string) => {
-      console.info('Attempting to collect contribution:', contributionId);
-      const { data, error } = await supabase
-        .from('food_contributions')
-        .update({ status: 'collected' })
-        .eq('id', contributionId)
-        .select()
-        .single();
-      
-      if (error) {
-        console.error('Error collecting contribution:', error);
-        throw error;
-      }
-      console.info('Successfully collected contribution:', data);
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['food-contributions'] });
-      queryClient.invalidateQueries({ queryKey: ['my-food-contributions'] });
-      toast({
-        title: "Success",
-        description: "Food item collected successfully!",
-      });
-    },
-    onError: (error) => {
-      console.error('Collect mutation error:', error);
-      toast({
-        title: "Error",
-        description: "Failed to collect food item",
-        variant: "destructive",
-      });
-    },
-  });
-
   const stopSharingMutation = useMutation({
     mutationFn: async (contributionId: string) => {
-      console.info('handleStopSharing called with contributionId:', contributionId);
-      console.info('Attempting to stop sharing contribution:', contributionId);
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('food_contributions')
-        .update({ status: 'unavailable' })
+        .update({ is_active: false })
         .eq('id', contributionId)
-        .eq('contributor_id', userId)
-        .select()
-        .single();
+        .eq('user_id', userId);
       
-      if (error) {
-        console.error('Error stopping sharing:', error);
-        throw error;
-      }
-      console.info('Successfully stopped sharing contribution:', data);
-      return data;
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['food-contributions'] });
-      queryClient.invalidateQueries({ queryKey: ['my-food-contributions'] });
+      queryClient.invalidateQueries({ queryKey: ['my-food-contributions', userId] });
       toast({
         title: "Success",
-        description: "Stopped sharing food item",
+        description: "Food contribution removed from sharing.",
       });
     },
     onError: (error) => {
-      console.error('Stop sharing mutation error:', error);
+      console.error('Stop sharing error:', error);
       toast({
         title: "Error",
-        description: "Failed to stop sharing food item",
+        description: "Failed to stop sharing. Please try again.",
         variant: "destructive",
       });
     },
   });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    addContributionMutation.mutate(formData);
-  };
-
-  const handleCollectItem = (contributionId: string) => {
-    collectContributionMutation.mutate(contributionId);
-  };
 
   const handleStopSharing = (contributionId: string) => {
     stopSharingMutation.mutate(contributionId);
   };
 
-  const handleOpenAddDialog = () => {
-    setFormData({
-      name: "",
-      quantity: 1,
-      unit: "pieces",
-      category: "",
-      description: "",
-      location: "",
-      available_until: getOneWeekFromNow(),
-    });
-    setIsAddDialogOpen(true);
+  const isExpiringSoon = (availableUntil: string) => {
+    const expiry = new Date(availableUntil);
+    const now = new Date();
+    const hoursUntilExpiry = (expiry.getTime() - now.getTime()) / (1000 * 60 * 60);
+    return hoursUntilExpiry <= 24 && hoursUntilExpiry > 0;
+  };
+
+  const isExpired = (availableUntil: string) => {
+    return new Date(availableUntil) <= new Date();
   };
 
   if (isLoading) {
-    return <div>Loading community contributions...</div>;
+    return (
+      <div className="container mx-auto p-4">
+        <div className="flex justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Community Kitchen</h2>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={handleOpenAddDialog}>
-              <Plus className="w-4 h-4 mr-2" />
-              Share Food
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Share Food with Community</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Food Item Name</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                />
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="quantity">Quantity</Label>
-                  <Input
-                    id="quantity"
-                    type="number"
-                    min="1"
-                    value={formData.quantity}
-                    onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) })}
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="unit">Unit</Label>
-                  <Select
-                    value={formData.unit}
-                    onValueChange={(value) => setFormData({ ...formData, unit: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pieces">Pieces</SelectItem>
-                      <SelectItem value="kilograms">Kilograms</SelectItem>
-                      <SelectItem value="litres">Litres</SelectItem>
-                      <SelectItem value="servings">Servings</SelectItem>
-                      <SelectItem value="portions">Portions</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="category">Category</Label>
-                <Select
-                  value={formData.category}
-                  onValueChange={(value) => setFormData({ ...formData, category: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="vegetables">Vegetables</SelectItem>
-                    <SelectItem value="fruits">Fruits</SelectItem>
-                    <SelectItem value="dairy">Dairy</SelectItem>
-                    <SelectItem value="meat">Meat</SelectItem>
-                    <SelectItem value="grains">Grains</SelectItem>
-                    <SelectItem value="prepared">Prepared Food</SelectItem>
-                    <SelectItem value="baked">Baked Goods</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="description">Description (Optional)</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Add any additional details..."
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="location">Pickup Location (Optional)</Label>
-                <Input
-                  id="location"
-                  value={formData.location}
-                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  placeholder="Where can people pick this up?"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="available_until">Available Until (Optional)</Label>
-                <Input
-                  id="available_until"
-                  type="date"
-                  value={formData.available_until}
-                  onChange={(e) => setFormData({ ...formData, available_until: e.target.value })}
-                />
-              </div>
-              
-              <Button type="submit" className="w-full" disabled={addContributionMutation.isPending}>
-                {addContributionMutation.isPending ? "Sharing..." : "Share with Community"}
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+    <div className="container mx-auto p-4 space-y-6">
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-3">
+          <Users className="w-8 h-8 text-primary" />
+          <div>
+            <h1 className="text-3xl font-bold">Community Kitchen</h1>
+            <p className="text-muted-foreground">Share and discover food in your community</p>
+          </div>
+        </div>
       </div>
 
-      {/* Available Contributions */}
-      <div>
-        <h3 className="text-lg font-semibold mb-4">Available Food Items</h3>
-        {contributions.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-8">
-              <Users className="w-12 h-12 text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">No food items available</p>
-              <p className="text-sm text-muted-foreground">Be the first to share something with the community!</p>
-            </CardContent>
-          </Card>
-        ) : (
+      {/* My Contributions */}
+      {myContributions.length > 0 && (
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold">My Shared Food</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {contributions.map((contribution) => (
-              <Card key={contribution.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-2 flex-1">
-                      <h4 className="font-semibold text-lg">{contribution.name}</h4>
-                      
-                      {/* Updated layout: Category · Quantity */}
-                      <p className="text-sm text-muted-foreground">
-                        {contribution.category ? `${contribution.category.charAt(0).toUpperCase() + contribution.category.slice(1)} · ` : ''}
-                        {contribution.quantity} {contribution.unit}
-                      </p>
-
-                      {contribution.description && (
-                        <p className="text-sm">{contribution.description}</p>
+            {myContributions.map((contribution) => (
+              <Card key={contribution.id} className="relative">
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <CardTitle className="text-lg">{contribution.title}</CardTitle>
+                    <div className="flex items-center gap-1">
+                      {contribution.is_active ? (
+                        <Badge variant="default">Active</Badge>
+                      ) : (
+                        <Badge variant="secondary">Inactive</Badge>
                       )}
-
-                      {contribution.location && (
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <MapPin className="w-3 h-3" />
-                          <span>{contribution.location}</span>
-                        </div>
-                      )}
-
-                      {contribution.available_until && (
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Calendar className="w-3 h-3" />
-                          <span>Until: {format(new Date(contribution.available_until), 'MMM dd, yyyy')}</span>
-                        </div>
-                      )}
-
-                      {/* Added icon for shared date */}
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <Share2 className="w-3 h-3" />
-                        <span>Shared: {format(new Date(contribution.created_at), 'MMM dd, yyyy')}</span>
-                      </div>
                     </div>
-
-                    {/* Only show collect button for items not contributed by current user */}
-                    {contribution.contributor_id !== userId && (
-                      <Button
-                        size="sm"
-                        onClick={() => handleCollectItem(contribution.id)}
-                        disabled={collectContributionMutation.isPending}
-                        className="bg-green-700 hover:bg-green-800 ml-4"
-                      >
-                        <Check className="w-4 h-4 mr-1" />
-                        Collect
-                      </Button>
-                    )}
                   </div>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-sm text-muted-foreground">{contribution.description}</p>
+                  
+                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                    <MapPin className="w-4 h-4" />
+                    <span>{contribution.location}</span>
+                  </div>
+                  
+                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                    <Package className="w-4 h-4" />
+                    <span>Quantity: {contribution.quantity}</span>
+                  </div>
+                  
+                  <div className={`flex items-center gap-1 text-sm ${
+                    isExpired(contribution.available_until) 
+                      ? 'text-red-600' 
+                      : isExpiringSoon(contribution.available_until) 
+                        ? 'text-orange-600' 
+                        : 'text-muted-foreground'
+                  }`}>
+                    <Calendar className="w-4 h-4" />
+                    <span>
+                      Available until: {format(new Date(contribution.available_until), 'MMM dd, yyyy HH:mm')}
+                    </span>
+                  </div>
+
+                  {contribution.is_active && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleStopSharing(contribution.id)}
+                      disabled={stopSharingMutation.isPending}
+                    >
+                      {stopSharingMutation.isPending ? "Stopping..." : "Stop Sharing"}
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             ))}
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* My Contributions */}
-      <div>
-        <h3 className="text-lg font-semibold mb-4">My Shared Items</h3>
-        {myContributions.length === 0 ? (
+      {/* Available Food */}
+      <div className="space-y-4">
+        <h2 className="text-xl font-semibold">Available Food in Community</h2>
+        {contributions.length === 0 ? (
           <Card>
-            <CardContent className="flex flex-col items-center justify-center py-8">
-              <p className="text-muted-foreground">You haven't shared any items yet</p>
-              <p className="text-sm text-muted-foreground">Share food with your community to help reduce waste!</p>
+            <CardContent className="text-center py-8">
+              <p className="text-muted-foreground">No food contributions available at the moment.</p>
+              <p className="text-sm text-muted-foreground mt-2">Check back later or be the first to share!</p>
             </CardContent>
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {myContributions.map((contribution) => (
-              <Card key={contribution.id} className={contribution.status === 'collected' ? 'opacity-60' : ''}>
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-2 flex-1">
-                      <h4 className="font-semibold text-lg">{contribution.name}</h4>
-                      
-                      {/* Updated layout: Category · Quantity */}
-                      <p className="text-sm text-muted-foreground">
-                        {contribution.category ? `${contribution.category.charAt(0).toUpperCase() + contribution.category.slice(1)} · ` : ''}
-                        {contribution.quantity} {contribution.unit}
-                      </p>
-
-                      {contribution.description && (
-                        <p className="text-sm">{contribution.description}</p>
-                      )}
-
-                      {contribution.location && (
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <MapPin className="w-3 h-3" />
-                          <span>{contribution.location}</span>
-                        </div>
-                      )}
-
-                      {contribution.available_until && (
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Calendar className="w-3 h-3" />
-                          <span>Until: {format(new Date(contribution.available_until), 'MMM dd, yyyy')}</span>
-                        </div>
-                      )}
-
-                      {/* Added icon for shared date */}
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <Share2 className="w-3 h-3" />
-                        <span>Shared: {format(new Date(contribution.created_at), 'MMM dd, yyyy')}</span>
-                      </div>
-
-                      <div className="flex items-center gap-1 text-xs font-medium">
-                        <span className={`
-                          ${contribution.status === 'available' ? 'text-green-600' : ''}
-                          ${contribution.status === 'collected' ? 'text-blue-600' : ''}
-                          ${contribution.status === 'unavailable' ? 'text-gray-600' : ''}
-                        `}>
-                          Status: {contribution.status === 'collected' ? 'Item Collected' : contribution.status}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Show stop sharing button only for available items */}
-                    {contribution.status === 'available' && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleStopSharing(contribution.id)}
-                        disabled={stopSharingMutation.isPending}
-                        className="ml-4"
-                      >
-                        Stop Sharing
-                      </Button>
-                    )}
+            {contributions
+              .filter(contribution => contribution.user_id !== userId)
+              .map((contribution) => (
+              <Card key={contribution.id} className={`${
+                isExpired(contribution.available_until) ? 'opacity-60' : ''
+              }`}>
+                <CardHeader>
+                  <CardTitle className="text-lg">{contribution.title}</CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Shared by {contribution.profiles?.full_name || 'Anonymous'}
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-sm text-muted-foreground">{contribution.description}</p>
+                  
+                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                    <MapPin className="w-4 h-4" />
+                    <span>{contribution.location}</span>
                   </div>
+                  
+                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                    <Package className="w-4 h-4" />
+                    <span>Quantity: {contribution.quantity}</span>
+                  </div>
+                  
+                  <div className={`flex items-center gap-1 text-sm ${
+                    isExpired(contribution.available_until) 
+                      ? 'text-red-600' 
+                      : isExpiringSoon(contribution.available_until) 
+                        ? 'text-orange-600' 
+                        : 'text-muted-foreground'
+                  }`}>
+                    <Calendar className="w-4 h-4" />
+                    <span>
+                      Available until: {format(new Date(contribution.available_until), 'MMM dd, yyyy HH:mm')}
+                    </span>
+                  </div>
+
+                  {isExpired(contribution.available_until) && (
+                    <Badge variant="destructive" className="w-fit">
+                      Expired
+                    </Badge>
+                  )}
+
+                  {isExpiringSoon(contribution.available_until) && !isExpired(contribution.available_until) && (
+                    <Badge variant="outline" className="w-fit border-orange-500 text-orange-600">
+                      Expiring Soon
+                    </Badge>
+                  )}
                 </CardContent>
               </Card>
             ))}
