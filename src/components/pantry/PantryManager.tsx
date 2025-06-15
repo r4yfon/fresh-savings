@@ -9,8 +9,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Calendar, Settings } from "lucide-react";
+import { Plus, Trash2, Calendar, Settings, Apple, Carrot, Milk, Beef, Wheat, Spice, Package2, Snowflake, HelpCircle } from "lucide-react";
 import { format } from "date-fns";
 
 interface PantryItem {
@@ -27,20 +28,58 @@ interface PantryManagerProps {
   userId: string;
 }
 
+const categoryIcons = {
+  fruits: Apple,
+  vegetables: Carrot,
+  dairy: Milk,
+  meat: Beef,
+  grains: Wheat,
+  spices: Spice,
+  canned: Package2,
+  frozen: Snowflake,
+  other: HelpCircle,
+};
+
+const categories = [
+  { value: "all", label: "All Categories" },
+  { value: "fruits", label: "Fruits" },
+  { value: "vegetables", label: "Vegetables" },
+  { value: "dairy", label: "Dairy" },
+  { value: "meat", label: "Meat" },
+  { value: "grains", label: "Grains" },
+  { value: "spices", label: "Spices" },
+  { value: "canned", label: "Canned Goods" },
+  { value: "frozen", label: "Frozen" },
+  { value: "other", label: "Other" },
+];
+
 const PantryManager = ({ userId }: PantryManagerProps) => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [isManageMode, setIsManageMode] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState("all");
   const [formData, setFormData] = useState({
     name: "",
     quantity: 1,
-    unit: "piece",
+    unit: "pieces",
     expiry_date: "",
     category: "",
   });
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Auto-fill expiry date to 2 weeks from now
+  const getTwoWeeksFromNow = () => {
+    const date = new Date();
+    date.setDate(date.getDate() + 14);
+    return date.toISOString().split('T')[0];
+  };
+
+  // Capitalize input function
+  const capitalizeWords = (str: string) => {
+    return str.toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
+  };
 
   const { data: pantryItems = [], isLoading } = useQuery({
     queryKey: ['pantry-items', userId],
@@ -61,7 +100,7 @@ const PantryManager = ({ userId }: PantryManagerProps) => {
         .from('pantry_items')
         .insert({
           user_id: userId,
-          name: newItem.name,
+          name: capitalizeWords(newItem.name),
           quantity: newItem.quantity,
           unit: newItem.unit,
           expiry_date: newItem.expiry_date || null,
@@ -76,7 +115,7 @@ const PantryManager = ({ userId }: PantryManagerProps) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pantry-items'] });
       setIsAddDialogOpen(false);
-      setFormData({ name: "", quantity: 1, unit: "piece", expiry_date: "", category: "" });
+      setFormData({ name: "", quantity: 1, unit: "pieces", expiry_date: "", category: "" });
       toast({
         title: "Success",
         description: "Item added to pantry!",
@@ -184,7 +223,7 @@ const PantryManager = ({ userId }: PantryManagerProps) => {
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedItems(pantryItems.map(item => item.id));
+      setSelectedItems(filteredPantryItems.map(item => item.id));
     } else {
       setSelectedItems([]);
     }
@@ -200,6 +239,17 @@ const PantryManager = ({ userId }: PantryManagerProps) => {
     clearPantryMutation.mutate();
   };
 
+  const handleOpenAddDialog = () => {
+    setFormData({
+      name: "",
+      quantity: 1,
+      unit: "pieces",
+      expiry_date: getTwoWeeksFromNow(),
+      category: "",
+    });
+    setIsAddDialogOpen(true);
+  };
+
   const isExpiringSoon = (expiryDate: string | null) => {
     if (!expiryDate) return false;
     const expiry = new Date(expiryDate);
@@ -207,6 +257,12 @@ const PantryManager = ({ userId }: PantryManagerProps) => {
     const threeDaysFromNow = new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000);
     return expiry <= threeDaysFromNow;
   };
+
+  // Filter pantry items based on category
+  const filteredPantryItems = pantryItems.filter(item => {
+    if (categoryFilter === "all") return true;
+    return item.category === categoryFilter;
+  });
 
   if (isLoading) {
     return <div>Loading pantry items...</div>;
@@ -273,7 +329,7 @@ const PantryManager = ({ userId }: PantryManagerProps) => {
           )}
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <Button onClick={handleOpenAddDialog}>
                 <Plus className="w-4 h-4 mr-2" />
                 Add Item
               </Button>
@@ -316,14 +372,9 @@ const PantryManager = ({ userId }: PantryManagerProps) => {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="piece">Piece</SelectItem>
-                        <SelectItem value="kg">Kg</SelectItem>
-                        <SelectItem value="g">Grams</SelectItem>
-                        <SelectItem value="l">Liters</SelectItem>
-                        <SelectItem value="ml">Milliliters</SelectItem>
-                        <SelectItem value="cup">Cup</SelectItem>
-                        <SelectItem value="tsp">Teaspoon</SelectItem>
-                        <SelectItem value="tbsp">Tablespoon</SelectItem>
+                        <SelectItem value="pieces">Pieces</SelectItem>
+                        <SelectItem value="kilograms">Kilograms</SelectItem>
+                        <SelectItem value="litres">Litres</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -371,6 +422,25 @@ const PantryManager = ({ userId }: PantryManagerProps) => {
         </div>
       </div>
 
+      {/* Category Filter */}
+      {pantryItems.length > 0 && (
+        <div className="space-y-3">
+          <Label>Filter by Category</Label>
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger className="w-48">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {categories.map((category) => (
+                <SelectItem key={category.value} value={category.value}>
+                  {category.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
       {pantryItems.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-8">
@@ -385,11 +455,11 @@ const PantryManager = ({ userId }: PantryManagerProps) => {
               <div className="flex items-center space-x-2">
                 <Checkbox
                   id="select-all"
-                  checked={selectedItems.length === pantryItems.length}
+                  checked={selectedItems.length === filteredPantryItems.length}
                   onCheckedChange={handleSelectAll}
                 />
                 <Label htmlFor="select-all" className="text-sm font-medium">
-                  Select All ({pantryItems.length} items)
+                  Select All ({filteredPantryItems.length} items)
                 </Label>
               </div>
               {selectedItems.length > 0 && (
@@ -400,49 +470,54 @@ const PantryManager = ({ userId }: PantryManagerProps) => {
             </div>
           )}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {pantryItems.map((item) => (
-              <Card key={item.id} className={`${isExpiringSoon(item.expiry_date) ? 'border-red-500' : ''}`}>
-                <CardHeader className="pb-3">
-                  <div className="flex justify-between items-start">
-                    <div className="flex items-center space-x-2">
-                      {isManageMode && (
-                        <Checkbox
-                          id={`item-${item.id}`}
-                          checked={selectedItems.includes(item.id)}
-                          onCheckedChange={(checked) => handleItemSelection(item.id, checked as boolean)}
-                        />
-                      )}
-                      <CardTitle className="text-lg">{item.name}</CardTitle>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => deleteItemMutation.mutate(item.id)}
-                      disabled={deleteItemMutation.isPending}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <p className="font-medium">{item.quantity} {item.unit}</p>
-                    {item.category && (
-                      <p className="text-sm text-muted-foreground capitalize">{item.category}</p>
-                    )}
-                    {item.expiry_date && (
-                      <div className={`flex items-center gap-1 text-sm ${isExpiringSoon(item.expiry_date) ? 'text-red-600' : 'text-muted-foreground'}`}>
-                        <Calendar className="w-3 h-3" />
-                        <span>Expires: {format(new Date(item.expiry_date), 'MMM dd, yyyy')}</span>
+            {filteredPantryItems.map((item) => {
+              const IconComponent = categoryIcons[item.category as keyof typeof categoryIcons] || HelpCircle;
+              
+              return (
+                <Card key={item.id} className={`${isExpiringSoon(item.expiry_date) ? 'border-red-500' : ''}`}>
+                  <CardHeader className="pb-3">
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-center space-x-2">
+                        {isManageMode && (
+                          <Checkbox
+                            id={`item-${item.id}`}
+                            checked={selectedItems.includes(item.id)}
+                            onCheckedChange={(checked) => handleItemSelection(item.id, checked as boolean)}
+                          />
+                        )}
+                        <IconComponent className="w-5 h-5 text-muted-foreground" />
+                        <CardTitle className="text-lg">{item.name}</CardTitle>
                       </div>
-                    )}
-                    {isExpiringSoon(item.expiry_date) && (
-                      <p className="text-xs text-red-600 font-medium">⚠️ Expiring soon!</p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => deleteItemMutation.mutate(item.id)}
+                        disabled={deleteItemMutation.isPending}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <p className="font-medium">{item.quantity} {item.unit}</p>
+                      {item.category && (
+                        <p className="text-sm text-muted-foreground capitalize">{item.category}</p>
+                      )}
+                      {item.expiry_date && (
+                        <div className={`flex items-center gap-1 text-sm ${isExpiringSoon(item.expiry_date) ? 'text-red-600' : 'text-muted-foreground'}`}>
+                          <Calendar className="w-3 h-3" />
+                          <span>Expires: {format(new Date(item.expiry_date), 'MMM dd, yyyy')}</span>
+                        </div>
+                      )}
+                      {isExpiringSoon(item.expiry_date) && (
+                        <p className="text-xs text-red-600 font-medium">⚠️ Expiring soon!</p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         </>
       )}

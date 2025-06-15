@@ -36,13 +36,25 @@ const RecipeGenerator = ({ userId, onNavigateToPantry }: RecipeGeneratorProps) =
   const [formData, setFormData] = useState({
     name: "",
     quantity: 1,
-    unit: "piece",
+    unit: "pieces",
     expiry_date: "",
     category: "",
   });
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Auto-fill expiry date to 2 weeks from now
+  const getTwoWeeksFromNow = () => {
+    const date = new Date();
+    date.setDate(date.getDate() + 14);
+    return date.toISOString().split('T')[0];
+  };
+
+  // Capitalize input function
+  const capitalizeWords = (str: string) => {
+    return str.toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
+  };
 
   const { data: pantryItems = [], isLoading } = useQuery({
     queryKey: ['pantry-items', userId],
@@ -64,7 +76,7 @@ const RecipeGenerator = ({ userId, onNavigateToPantry }: RecipeGeneratorProps) =
         .from('pantry_items')
         .insert({
           user_id: userId,
-          name: newItem.name,
+          name: capitalizeWords(newItem.name),
           quantity: newItem.quantity,
           unit: newItem.unit,
           expiry_date: newItem.expiry_date || null,
@@ -79,7 +91,7 @@ const RecipeGenerator = ({ userId, onNavigateToPantry }: RecipeGeneratorProps) =
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pantry-items'] });
       setIsAddDialogOpen(false);
-      setFormData({ name: "", quantity: 1, unit: "piece", expiry_date: "", category: "" });
+      setFormData({ name: "", quantity: 1, unit: "pieces", expiry_date: "", category: "" });
       toast({
         title: "Success",
         description: "Item added to pantry!",
@@ -103,6 +115,13 @@ const RecipeGenerator = ({ userId, onNavigateToPantry }: RecipeGeneratorProps) =
   };
 
   const handleAddToPantryFirst = () => {
+    setFormData({
+      name: "",
+      quantity: 1,
+      unit: "pieces",
+      expiry_date: getTwoWeeksFromNow(),
+      category: "",
+    });
     setIsAddDialogOpen(true);
   };
 
@@ -164,14 +183,9 @@ const RecipeGenerator = ({ userId, onNavigateToPantry }: RecipeGeneratorProps) =
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="piece">Piece</SelectItem>
-                        <SelectItem value="kg">Kg</SelectItem>
-                        <SelectItem value="g">Grams</SelectItem>
-                        <SelectItem value="l">Liters</SelectItem>
-                        <SelectItem value="ml">Milliliters</SelectItem>
-                        <SelectItem value="cup">Cup</SelectItem>
-                        <SelectItem value="tsp">Teaspoon</SelectItem>
-                        <SelectItem value="tbsp">Tablespoon</SelectItem>
+                        <SelectItem value="pieces">Pieces</SelectItem>
+                        <SelectItem value="kilograms">Kilograms</SelectItem>
+                        <SelectItem value="litres">Litres</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

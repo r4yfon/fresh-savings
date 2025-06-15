@@ -22,6 +22,11 @@ const IngredientSelector = ({ userId, selectedIngredients, onIngredientsChange }
   const [customQuantity, setCustomQuantity] = useState("");
   const [customUnit, setCustomUnit] = useState("pieces");
 
+  // Capitalize input function
+  const capitalizeWords = (str: string) => {
+    return str.toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
+  };
+
   const { data: pantryItems = [] } = useQuery({
     queryKey: ['pantry-items', userId],
     queryFn: async () => {
@@ -36,7 +41,7 @@ const IngredientSelector = ({ userId, selectedIngredients, onIngredientsChange }
   });
 
   const handlePantryItemToggle = (item: any, checked: boolean) => {
-    const ingredientText = `${item.quantity || 1} ${item.unit || 'piece'}${item.quantity > 1 && item.unit !== 'piece' ? 's' : ''} ${item.name}`;
+    const ingredientText = `${item.quantity || 1} ${item.unit || 'pieces'}${item.quantity > 1 && item.unit !== 'pieces' ? '' : ''} ${item.name}`;
     
     if (checked) {
       onIngredientsChange([...selectedIngredients, ingredientText]);
@@ -49,7 +54,8 @@ const IngredientSelector = ({ userId, selectedIngredients, onIngredientsChange }
     if (customIngredient.trim()) {
       const quantity = customQuantity.trim() || "1";
       const unit = customUnit;
-      const ingredientText = `${quantity} ${unit} ${customIngredient.trim()}`;
+      const capitalizedIngredient = capitalizeWords(customIngredient.trim());
+      const ingredientText = `${quantity} ${unit} ${capitalizedIngredient}`;
       
       if (!selectedIngredients.includes(ingredientText)) {
         onIngredientsChange([...selectedIngredients, ingredientText]);
@@ -65,7 +71,7 @@ const IngredientSelector = ({ userId, selectedIngredients, onIngredientsChange }
   };
 
   const isItemSelected = (item: any) => {
-    const ingredientText = `${item.quantity || 1} ${item.unit || 'piece'}${item.quantity > 1 && item.unit !== 'piece' ? 's' : ''} ${item.name}`;
+    const ingredientText = `${item.quantity || 1} ${item.unit || 'pieces'}${item.quantity > 1 && item.unit !== 'pieces' ? '' : ''} ${item.name}`;
     return selectedIngredients.includes(ingredientText);
   };
 
@@ -108,7 +114,7 @@ const IngredientSelector = ({ userId, selectedIngredients, onIngredientsChange }
                     }
                   />
                   <label htmlFor={item.name} className="text-sm cursor-pointer flex-1">
-                    {item.quantity || 1} {item.unit || 'piece'}{item.quantity > 1 && item.unit !== 'piece' ? 's' : ''} {item.name}
+                    {item.quantity || 1} {item.unit || 'pieces'} {item.name}
                   </label>
                 </div>
               ))}
