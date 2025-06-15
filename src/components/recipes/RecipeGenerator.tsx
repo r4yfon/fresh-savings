@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChefHat, Package, Plus } from "lucide-react";
 import AIRecipeGenerator from "./AIRecipeGenerator";
+import IngredientSelector from "./IngredientSelector";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 
@@ -30,6 +31,8 @@ interface RecipeGeneratorProps {
 
 const RecipeGenerator = ({ userId, onNavigateToPantry }: RecipeGeneratorProps) => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [selectedIngredients, setSelectedIngredients] = useState<string[]>([]);
+  const [generatedRecipe, setGeneratedRecipe] = useState<any>(null);
   const [formData, setFormData] = useState({
     name: "",
     quantity: 1,
@@ -101,6 +104,10 @@ const RecipeGenerator = ({ userId, onNavigateToPantry }: RecipeGeneratorProps) =
 
   const handleAddToPantryFirst = () => {
     setIsAddDialogOpen(true);
+  };
+
+  const handleRecipeGenerated = (recipe: any) => {
+    setGeneratedRecipe(recipe);
   };
 
   if (isLoading) {
@@ -225,7 +232,52 @@ const RecipeGenerator = ({ userId, onNavigateToPantry }: RecipeGeneratorProps) =
           </CardContent>
         </Card>
       ) : (
-        <AIRecipeGenerator userId={userId} pantryItems={pantryItems} />
+        <div className="space-y-6">
+          <IngredientSelector
+            userId={userId}
+            selectedIngredients={selectedIngredients}
+            onIngredientsChange={setSelectedIngredients}
+          />
+          
+          <AIRecipeGenerator
+            selectedIngredients={selectedIngredients}
+            onRecipeGenerated={handleRecipeGenerated}
+          />
+
+          {generatedRecipe && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Generated Recipe</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">{generatedRecipe.name}</h3>
+                  <div>
+                    <h4 className="font-medium mb-2">Ingredients:</h4>
+                    <ul className="list-disc list-inside space-y-1">
+                      {generatedRecipe.ingredients?.map((ingredient: string, index: number) => (
+                        <li key={index} className="text-sm">{ingredient}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <h4 className="font-medium mb-2">Instructions:</h4>
+                    <ol className="list-decimal list-inside space-y-1">
+                      {generatedRecipe.instructions?.map((instruction: string, index: number) => (
+                        <li key={index} className="text-sm">{instruction}</li>
+                      ))}
+                    </ol>
+                  </div>
+                  {generatedRecipe.cookingTime && (
+                    <p className="text-sm text-muted-foreground">
+                      Cooking time: {generatedRecipe.cookingTime}
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       )}
     </div>
   );
