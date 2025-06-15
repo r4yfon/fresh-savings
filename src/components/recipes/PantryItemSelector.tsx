@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Apple, Carrot, Milk, Beef, Wheat, Utensils, Package2, Snowflake, HelpCircle, Calendar, X } from "lucide-react";
+import { Apple, Carrot, Milk, Beef, Wheat, Utensils, Package2, Snowflake, HelpCircle, Calendar } from "lucide-react";
 import { format } from "date-fns";
 
 interface PantryItem {
@@ -99,10 +100,6 @@ const PantryItemSelector = ({
     return localSelectedItems.includes(ingredientText);
   };
 
-  const handleRemoveIngredient = (ingredient: string) => {
-    setLocalSelectedItems(localSelectedItems.filter(item => item !== ingredient));
-  };
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
@@ -111,25 +108,6 @@ const PantryItemSelector = ({
         </DialogHeader>
         
         <div className="space-y-4">
-          {/* Selected ingredients with delete icons */}
-          {localSelectedItems.length > 0 && (
-            <div className="space-y-2">
-              <h4 className="font-medium">Selected Ingredients:</h4>
-              <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
-                {localSelectedItems.map((ingredient) => (
-                  <Badge key={ingredient} variant="secondary" className="flex items-center gap-1">
-                    {ingredient}
-                    <X 
-                      className="cursor-pointer" 
-                      style={{ width: '28px', height: '28px' }}
-                      onClick={() => handleRemoveIngredient(ingredient)}
-                    />
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* Action buttons */}
           <div className="flex justify-between items-center">
             <div className="flex gap-2">

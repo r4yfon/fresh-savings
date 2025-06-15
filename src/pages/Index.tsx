@@ -6,8 +6,6 @@ import PantryManager from "@/components/pantry/PantryManager";
 import RecipeGenerator from "@/components/recipes/RecipeGenerator";
 import FoodContributions from "@/components/contributions/FoodContributions";
 import LandingPage from "@/components/landing/LandingPage";
-import Footer from "@/components/layout/Footer";
-import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { ChefHat, Package, Users, Home, Menu, Utensils, Share2, Sparkles } from "lucide-react";
@@ -75,7 +73,7 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen">
       {/* Desktop Navigation */}
       <div className="hidden md:block border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4">
@@ -137,17 +135,14 @@ const Index = () => {
               )}
             </div>
             
-            <div className="flex items-center gap-2">
-              <ThemeToggle />
-              {session && (
-                <Button
-                  variant="destructive"
-                  onClick={handleSignOut}
-                >
-                  Sign Out
-                </Button>
-              )}
-            </div>
+            {session && (
+              <Button
+                variant="outline"
+                onClick={handleSignOut}
+              >
+                Sign Out
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -161,7 +156,6 @@ const Index = () => {
             </div>
             
             <div className="flex items-center gap-2">
-              <ThemeToggle />
               <Popover open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
                 <PopoverTrigger asChild>
                   <Button variant="ghost" size="sm">
@@ -198,7 +192,7 @@ const Index = () => {
                         </Button>
                         <div className="border-t pt-2 mt-2">
                           <Button
-                            variant="destructive"
+                            variant="outline"
                             className="w-full justify-start"
                             onClick={handleSignOut}
                           >
@@ -243,43 +237,38 @@ const Index = () => {
       </Dialog>
 
       {/* Content */}
-      <div className="flex-1">
-        {activeTab === "landing" ? (
-          <LandingPage onGetStarted={handleGetStarted} />
-        ) : activeTab === "auth" || (!session && activeTab !== "landing") ? (
-          <div className="container mx-auto p-4">
-            <div className="max-w-md mx-auto">
-              <AuthComponent />
-            </div>
+      {activeTab === "landing" ? (
+        <LandingPage onGetStarted={handleGetStarted} />
+      ) : activeTab === "auth" || (!session && activeTab !== "landing") ? (
+        <div className="container mx-auto p-4">
+          <div className="max-w-md mx-auto">
+            <AuthComponent />
           </div>
-        ) : !session ? (
-          <div className="container mx-auto p-4">
-            <div className="max-w-md mx-auto">
-              <AuthComponent />
-            </div>
+        </div>
+      ) : !session ? (
+        <div className="container mx-auto p-4">
+          <div className="max-w-md mx-auto">
+            <AuthComponent />
           </div>
-        ) : (
-          <div className="container mx-auto p-4">
-            {activeTab === "pantry" && (
-              <PantryManager userId={session?.user?.id || ""} />
-            )}
+        </div>
+      ) : (
+        <div className="container mx-auto p-4">
+          {activeTab === "pantry" && (
+            <PantryManager userId={session?.user?.id || ""} />
+          )}
 
-            {activeTab === "recipes" && (
-              <RecipeGenerator 
-                userId={session?.user?.id || ""} 
-                onNavigateToPantry={() => setActiveTab("pantry")}
-              />
-            )}
+          {activeTab === "recipes" && (
+            <RecipeGenerator 
+              userId={session?.user?.id || ""} 
+              onNavigateToPantry={() => setActiveTab("pantry")}
+            />
+          )}
 
-            {activeTab === "community" && (
-              <FoodContributions userId={session?.user?.id || ""} />
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Footer */}
-      <Footer />
+          {activeTab === "community" && (
+            <FoodContributions userId={session?.user?.id || ""} />
+          )}
+        </div>
+      )}
     </div>
   );
 };

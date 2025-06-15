@@ -473,31 +473,7 @@ const RecipeGenerator = ({ userId, onNavigateToPantry }: RecipeGeneratorProps) =
             </Card>
           </div>
 
-          {/* Selected Ingredients Section - moved above generate button */}
-          {selectedIngredients.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Selected Ingredients</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  {selectedIngredients.map((ingredient, index) => (
-                    <Badge key={index} variant="secondary" className="text-sm">
-                      {ingredient}
-                      <button
-                        onClick={() => removeIngredient(index)}
-                        className="ml-2 hover:text-red-600"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </Badge>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Generate Recipe Button - moved below selected ingredients */}
+          {/* Simple AI Recipe Generator Button - Remove card styling */}
           {selectedIngredients.length > 0 && (
             <div className="flex justify-center">
               <Button 
@@ -519,6 +495,30 @@ const RecipeGenerator = ({ userId, onNavigateToPantry }: RecipeGeneratorProps) =
                 )}
               </Button>
             </div>
+          )}
+
+          {/* Selected Ingredients Section - moved here to prevent jumpiness */}
+          {selectedIngredients.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Selected Ingredients</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {selectedIngredients.map((ingredient, index) => (
+                    <Badge key={index} variant="secondary" className="text-sm">
+                      {ingredient}
+                      <button
+                        onClick={() => removeIngredient(index)}
+                        className="ml-2 hover:text-red-600"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           )}
 
           {/* Generated Recipe Display */}

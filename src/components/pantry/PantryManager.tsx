@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -483,7 +484,7 @@ const PantryManager = ({ userId }: PantryManagerProps) => {
                 onClick={() => handleCardClick(item.id)}
               >
                 <CardContent className="p-4">
-                  {/* Delete button in top right - updated to 28px */}
+                  {/* Delete button in top right - made bigger */}
                   <Button
                     variant="ghost"
                     size="sm"
@@ -494,7 +495,7 @@ const PantryManager = ({ userId }: PantryManagerProps) => {
                     }}
                     disabled={deleteItemMutation.isPending}
                   >
-                    <Trash2 className="w-7 h-7" />
+                    <Trash2 className="w-8 h-8" />
                   </Button>
 
                   <div className="flex flex-col items-start text-left space-y-3">
