@@ -416,60 +416,57 @@ const RecipeGenerator = ({
 
                     return (
                       <div
-                        key={item.id}
-                        className={`p-3 border rounded ${
+                        className={`flex justify-between items-center border rounded ${
                           isSelected
                             ? "bg-primary/10 border-primary"
                             : "hover:bg-muted"
                         }`}>
-                        <div className="flex justify-between items-center">
-                          <div
-                            className="flex-1 cursor-pointer"
-                            onClick={() => togglePantryItem(item)}>
-                            <span className="font-medium">{item.name}</span>
-                            <span className="text-sm text-muted-foreground ml-2">
-                              (Available: {item.quantity} {item.unit})
-                            </span>
-                          </div>
-
-                          {isSelected && (
-                            <div className="flex items-center gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-6 w-6 p-0"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  updatePantryItemQuantity(
-                                    item,
-                                    selectedQuantity - 1,
-                                  );
-                                }}
-                                disabled={selectedQuantity <= 1}>
-                                <Minus className="w-3 h-3" />
-                              </Button>
-
-                              <span className="text-sm font-medium min-w-[3rem] text-center">
-                                {selectedQuantity} {item.unit}
-                              </span>
-
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-6 w-6 p-0"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  updatePantryItemQuantity(
-                                    item,
-                                    selectedQuantity + 1,
-                                  );
-                                }}
-                                disabled={selectedQuantity >= item.quantity}>
-                                <Plus className="w-3 h-3" />
-                              </Button>
-                            </div>
-                          )}
+                        <div
+                          className="flex-1 cursor-pointer p-3"
+                          onClick={() => togglePantryItem(item)}>
+                          <span className="font-medium">{item.name}</span>
+                          <span className="text-sm text-muted-foreground ml-2">
+                            (Available: {item.quantity} {item.unit})
+                          </span>
                         </div>
+
+                        {isSelected && (
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-6 w-6 p-0"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                updatePantryItemQuantity(
+                                  item,
+                                  selectedQuantity - 1,
+                                );
+                              }}
+                              disabled={selectedQuantity <= 1}>
+                              <Minus className="w-3 h-3" />
+                            </Button>
+
+                            <span className="text-sm font-medium min-w-[3rem] text-center">
+                              {selectedQuantity} {item.unit}
+                            </span>
+
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-6 w-6 p-0"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                updatePantryItemQuantity(
+                                  item,
+                                  selectedQuantity + 1,
+                                );
+                              }}
+                              disabled={selectedQuantity >= item.quantity}>
+                              <Plus className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -523,12 +520,7 @@ const RecipeGenerator = ({
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="pieces">Pieces</SelectItem>
-                          <SelectItem value="cups">Cups</SelectItem>
-                          <SelectItem value="tbsp">Tbsp</SelectItem>
-                          <SelectItem value="tsp">Tsp</SelectItem>
-                          <SelectItem value="grams">Grams</SelectItem>
-                          <SelectItem value="kg">Kg</SelectItem>
-                          <SelectItem value="ml">ML</SelectItem>
+                          <SelectItem value="kilograms">Kilograms</SelectItem>
                           <SelectItem value="litres">Litres</SelectItem>
                         </SelectContent>
                       </Select>
@@ -545,6 +537,29 @@ const RecipeGenerator = ({
               </CardContent>
             </Card>
           </div>
+
+          {/* Selected Ingredients Section - moved here to prevent jumpiness */}
+          {selectedIngredients.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Selected Ingredients</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {selectedIngredients.map((ingredient, index) => (
+                    <Badge key={index} variant="secondary" className="text-sm">
+                      {ingredient}
+                      <button
+                        onClick={() => removeIngredient(index)}
+                        className="ml-2 hover:text-red-600">
+                        <X className="w-3 h-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Simple AI Recipe Generator Button - Remove card styling */}
           {selectedIngredients.length > 0 && (
@@ -570,29 +585,6 @@ const RecipeGenerator = ({
                 )}
               </Button>
             </div>
-          )}
-
-          {/* Selected Ingredients Section - moved here to prevent jumpiness */}
-          {selectedIngredients.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Selected Ingredients</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  {selectedIngredients.map((ingredient, index) => (
-                    <Badge key={index} variant="secondary" className="text-sm">
-                      {ingredient}
-                      <button
-                        onClick={() => removeIngredient(index)}
-                        className="ml-2 hover:text-red-600">
-                        <X className="w-3 h-3" />
-                      </button>
-                    </Badge>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
           )}
 
           {/* Generated Recipe Display */}
