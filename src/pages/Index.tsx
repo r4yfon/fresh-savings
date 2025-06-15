@@ -83,18 +83,6 @@ const Index = () => {
             </div>
             
             <div className="flex items-center gap-1">
-              {session && (
-                <Button
-                  variant={activeTab === "landing" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => setActiveTab("landing")}
-                  className="px-3"
-                >
-                  <Home className="w-4 h-4 mr-2" />
-                  Home
-                </Button>
-              )}
-              
               {session ? (
                 <>
                   <Button
@@ -168,15 +156,6 @@ const Index = () => {
             </div>
             
             <div className="flex items-center gap-2">
-              {session && (
-                <Button
-                  variant={activeTab === "landing" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => setActiveTab("landing")}
-                >
-                  <Home className="w-4 h-4" />
-                </Button>
-              )}
               <Popover open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
                 <PopoverTrigger asChild>
                   <Button variant="ghost" size="sm">

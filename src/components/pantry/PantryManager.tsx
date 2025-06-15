@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Calendar, Settings, Apple, Carrot, Milk, Beef, Wheat, Utensils, Package2, Snowflake, HelpCircle, Package } from "lucide-react";
+import { Plus, Trash2, Calendar, Settings, Apple, Carrot, Milk, Beef, Wheat, Utensils, Package2, Snowflake, HelpCircle, Package, Sigma } from "lucide-react";
 import { format } from "date-fns";
 
 interface PantryItem {
@@ -40,7 +41,7 @@ const categoryIcons = {
 };
 
 const categories = [
-  { value: "all", label: "All Categories", icon: Package },
+  { value: "all", label: "All Categories", icon: Sigma },
   { value: "fruits", label: "Fruits", icon: Apple },
   { value: "vegetables", label: "Vegetables", icon: Carrot },
   { value: "dairy", label: "Dairy", icon: Milk },
@@ -337,18 +338,6 @@ const PantryManager = ({ userId }: PantryManagerProps) => {
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="quantity">Quantity</Label>
-                    <Input
-                      id="quantity"
-                      type="number"
-                      min="1"
-                      value={formData.quantity}
-                      onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) })}
-                      required
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
                     <Label htmlFor="unit">Unit</Label>
                     <Select
                       value={formData.unit}
@@ -363,6 +352,18 @@ const PantryManager = ({ userId }: PantryManagerProps) => {
                         <SelectItem value="litres">Litres</SelectItem>
                       </SelectContent>
                     </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="quantity">Quantity</Label>
+                    <Input
+                      id="quantity"
+                      type="number"
+                      min="1"
+                      value={formData.quantity}
+                      onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) })}
+                      required
+                    />
                   </div>
                 </div>
                 
@@ -498,27 +499,33 @@ const PantryManager = ({ userId }: PantryManagerProps) => {
                   </Button>
 
                   <div className="flex flex-col items-start text-left space-y-3">
-                    {/* Icon at top */}
-                    <IconComponent className="w-9 h-9 text-muted-foreground" />
+                    {/* Icon at top when not in manage mode */}
+                    {!isManageMode && <IconComponent className="w-9 h-9 text-muted-foreground" />}
                     
-                    {/* Item name with checkbox beside it during manage mode */}
-                    <div className="flex items-center gap-2 w-full pr-12">
-                      {isManageMode && (
-                        <Checkbox
-                          id={`item-${item.id}`}
-                          checked={selectedItems.includes(item.id)}
-                          onCheckedChange={(checked) => handleItemSelection(item.id, checked as boolean)}
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                      )}
-                      <div className="space-y-1">
-                        <h3 className="font-semibold text-lg">{item.name}</h3>
-                        {/* Category · Quantity layout */}
-                        <p className="text-sm text-muted-foreground">
-                          {item.category ? `${item.category.charAt(0).toUpperCase() + item.category.slice(1)} · ` : ''}
-                          {item.quantity} {item.unit}
-                        </p>
+                    {/* Item name with checkbox in manage mode */}
+                    <div className="flex items-center justify-between w-full pr-12">
+                      <div className="flex items-center gap-2">
+                        {isManageMode && (
+                          <Checkbox
+                            id={`item-${item.id}`}
+                            checked={selectedItems.includes(item.id)}
+                            onCheckedChange={(checked) => handleItemSelection(item.id, checked as boolean)}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        )}
+                        <div className="space-y-1">
+                          <h3 className="font-semibold text-lg">{item.name}</h3>
+                        </div>
                       </div>
+                      {isManageMode && <IconComponent className="w-6 h-6 text-muted-foreground" />}
+                    </div>
+
+                    {/* Category and quantity info - not shifted in manage mode */}
+                    <div className="w-full">
+                      <p className="text-sm text-muted-foreground">
+                        {item.category ? `${item.category.charAt(0).toUpperCase() + item.category.slice(1)} · ` : ''}
+                        {item.quantity} {item.unit}
+                      </p>
                     </div>
 
                     {/* Additional info */}

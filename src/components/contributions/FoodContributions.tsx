@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, MapPin, Calendar, Package, Users, Share, Edit, StopCircle, Apple, Beef, Wheat, Milk, Archive, Cookie, Utensils, Snowflake } from "lucide-react";
+import { Plus, MapPin, Calendar, Package, Users, Share, Edit, StopCircle, Apple, Beef, Wheat, Milk, Archive, Cookie, Utensils, Snowflake, Check } from "lucide-react";
 import { format } from "date-fns";
 
 interface FoodContribution {
@@ -210,13 +210,19 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
 
   const stopSharingMutation = useMutation({
     mutationFn: async (contributionId: string) => {
+      console.log('Attempting to stop sharing contribution:', contributionId);
       const { data, error } = await supabase
         .from('food_contributions')
         .update({ status: 'unavailable' })
         .eq('id', contributionId)
-        .eq('contributor_id', userId);
+        .eq('contributor_id', userId)
+        .select();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error stopping sharing:', error);
+        throw error;
+      }
+      console.log('Successfully stopped sharing:', data);
       return data;
     },
     onSuccess: () => {
@@ -227,7 +233,8 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
         description: "Stopped sharing food item",
       });
     },
-    onError: () => {
+    onError: (error) => {
+      console.error('Stop sharing mutation error:', error);
       toast({
         title: "Error",
         description: "Failed to stop sharing",
@@ -339,6 +346,7 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
   };
 
   const handleStopSharing = (contributionId: string) => {
+    console.log('handleStopSharing called with contributionId:', contributionId);
     stopSharingMutation.mutate(contributionId);
   };
 
@@ -377,8 +385,7 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
                 <Card key={item.id}>
                   <CardContent className="p-4">
                     <div className="space-y-3">
-                      <div className="flex items-center gap-2">
-                        <CategoryIcon className="w-5 h-5 text-muted-foreground" />
+                      <div className="flex items-center justify-between">
                         <div className="flex-1">
                           <h4 className="font-semibold">{item.name}</h4>
                           <p className="text-sm text-muted-foreground">
@@ -390,6 +397,7 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
                             </p>
                           )}
                         </div>
+                        <CategoryIcon className="w-5 h-5 text-muted-foreground" />
                       </div>
                       
                       <div className="flex gap-2">
@@ -418,17 +426,18 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
                               variant="destructive"
                               onClick={() => sharedContribution && handleStopSharing(sharedContribution.id)}
                               className="flex-1"
+                              disabled={stopSharingMutation.isPending}
                             >
                               <StopCircle className="w-4 h-4 mr-2" />
                               Stop Sharing
                             </Button>
                             <Button
                               size="sm"
-                              variant="secondary"
+                              className="flex-1 bg-green-800 hover:bg-green-900 text-white"
                               onClick={() => handleRemoveFromPantry(item)}
-                              className="flex-1"
                             >
-                              Item Shared
+                              <Check className="w-4 h-4 mr-2" />
+                              Item Collected
                             </Button>
                           </>
                         )}
@@ -461,8 +470,7 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
                 <Card key={contribution.id}>
                   <CardContent className="p-4">
                     <div className="space-y-3">
-                      <div className="flex items-center gap-2">
-                        <CategoryIcon className="w-5 h-5 text-muted-foreground" />
+                      <div className="flex items-center justify-between">
                         <div className="flex-1">
                           <h4 className="font-semibold">{contribution.name}</h4>
                           <p className="text-sm text-muted-foreground">
@@ -474,6 +482,7 @@ const FoodContributions = ({ userId }: FoodContributionsProps) => {
                             </p>
                           )}
                         </div>
+                        <CategoryIcon className="w-5 h-5 text-muted-foreground" />
                       </div>
                       
                       {contribution.description && (
