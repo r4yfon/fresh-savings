@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import { X } from "lucide-react";
 
 interface IngredientSelectorProps {
@@ -17,13 +18,15 @@ interface IngredientSelectorProps {
 
 const IngredientSelector = ({ userId, selectedIngredients, onIngredientsChange }: IngredientSelectorProps) => {
   const [customIngredient, setCustomIngredient] = useState("");
+  const [customQuantity, setCustomQuantity] = useState("");
+  const [customUnit, setCustomUnit] = useState("");
 
   const { data: pantryItems = [] } = useQuery({
     queryKey: ['pantry-items', userId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('pantry_items')
-        .select('name')
+        .select('name, quantity, unit')
         .order('name');
       
       if (error) throw error;
@@ -31,23 +34,38 @@ const IngredientSelector = ({ userId, selectedIngredients, onIngredientsChange }
     },
   });
 
-  const handlePantryItemToggle = (itemName: string, checked: boolean) => {
+  const handlePantryItemToggle = (item: any, checked: boolean) => {
+    const ingredientText = `${item.quantity || 1} ${item.unit || 'piece'}${item.quantity > 1 && item.unit !== 'piece' ? 's' : ''} ${item.name}`;
+    
     if (checked) {
-      onIngredientsChange([...selectedIngredients, itemName]);
+      onIngredientsChange([...selectedIngredients, ingredientText]);
     } else {
-      onIngredientsChange(selectedIngredients.filter(item => item !== itemName));
+      onIngredientsChange(selectedIngredients.filter(ingredient => ingredient !== ingredientText));
     }
   };
 
   const handleAddCustomIngredient = () => {
-    if (customIngredient.trim() && !selectedIngredients.includes(customIngredient.trim())) {
-      onIngredientsChange([...selectedIngredients, customIngredient.trim()]);
-      setCustomIngredient("");
+    if (customIngredient.trim()) {
+      const quantity = customQuantity.trim() || "1";
+      const unit = customUnit.trim() || "piece";
+      const ingredientText = `${quantity} ${unit}${parseInt(quantity) > 1 && unit !== 'piece' ? 's' : ''} ${customIngredient.trim()}`;
+      
+      if (!selectedIngredients.includes(ingredientText)) {
+        onIngredientsChange([...selectedIngredients, ingredientText]);
+        setCustomIngredient("");
+        setCustomQuantity("");
+        setCustomUnit("");
+      }
     }
   };
 
   const handleRemoveIngredient = (ingredient: string) => {
     onIngredientsChange(selectedIngredients.filter(item => item !== ingredient));
+  };
+
+  const isItemSelected = (item: any) => {
+    const ingredientText = `${item.quantity || 1} ${item.unit || 'piece'}${item.quantity > 1 && item.unit !== 'piece' ? 's' : ''} ${item.name}`;
+    return selectedIngredients.includes(ingredientText);
   };
 
   return (
@@ -78,18 +96,18 @@ const IngredientSelector = ({ userId, selectedIngredients, onIngredientsChange }
         {pantryItems.length > 0 && (
           <div className="space-y-2">
             <h4 className="font-medium">From Your Pantry:</h4>
-            <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
+            <div className="grid grid-cols-1 gap-2 max-h-32 overflow-y-auto">
               {pantryItems.map((item) => (
                 <div key={item.name} className="flex items-center space-x-2">
                   <Checkbox
                     id={item.name}
-                    checked={selectedIngredients.includes(item.name)}
+                    checked={isItemSelected(item)}
                     onCheckedChange={(checked) => 
-                      handlePantryItemToggle(item.name, checked as boolean)
+                      handlePantryItemToggle(item, checked as boolean)
                     }
                   />
-                  <label htmlFor={item.name} className="text-sm cursor-pointer">
-                    {item.name}
+                  <label htmlFor={item.name} className="text-sm cursor-pointer flex-1">
+                    {item.quantity || 1} {item.unit || 'piece'}{item.quantity > 1 && item.unit !== 'piece' ? 's' : ''} {item.name}
                   </label>
                 </div>
               ))}
@@ -98,19 +116,44 @@ const IngredientSelector = ({ userId, selectedIngredients, onIngredientsChange }
         )}
 
         {/* Add custom ingredient */}
-        <div className="space-y-2">
+        <div className="space-y-3">
           <h4 className="font-medium">Add Other Ingredients:</h4>
-          <div className="flex gap-2">
-            <Input
-              placeholder="Enter ingredient name"
-              value={customIngredient}
-              onChange={(e) => setCustomIngredient(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleAddCustomIngredient()}
-            />
-            <Button onClick={handleAddCustomIngredient} variant="outline">
-              Add
-            </Button>
+          <div className="grid grid-cols-3 gap-2">
+            <div className="space-y-1">
+              <Label htmlFor="quantity" className="text-xs">Quantity</Label>
+              <Input
+                id="quantity"
+                placeholder="1"
+                value={customQuantity}
+                onChange={(e) => setCustomQuantity(e.target.value)}
+                className="h-8"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="unit" className="text-xs">Unit</Label>
+              <Input
+                id="unit"
+                placeholder="cup, tsp, etc."
+                value={customUnit}
+                onChange={(e) => setCustomUnit(e.target.value)}
+                className="h-8"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="ingredient" className="text-xs">Ingredient</Label>
+              <Input
+                id="ingredient"
+                placeholder="flour, sugar, etc."
+                value={customIngredient}
+                onChange={(e) => setCustomIngredient(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleAddCustomIngredient()}
+                className="h-8"
+              />
+            </div>
           </div>
+          <Button onClick={handleAddCustomIngredient} variant="outline" className="w-full">
+            Add Ingredient
+          </Button>
         </div>
       </CardContent>
     </Card>
