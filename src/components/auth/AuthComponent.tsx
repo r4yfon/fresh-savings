@@ -35,6 +35,8 @@ const AuthComponent = () => {
         title: "Success",
         description: "Signed in successfully!",
       });
+      // Trigger a page refresh to let the Index component handle the redirect
+      window.location.reload();
     }
 
     setIsLoading(false);
