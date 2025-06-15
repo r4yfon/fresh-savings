@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChefHat, Package, Plus, X, Sparkles, Loader2 } from "lucide-react";
+import { ChefHat, Package, Plus, X, Sparkles, Loader2, Minus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import AIRecipeGenerator from "./AIRecipeGenerator";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -35,6 +35,7 @@ const RecipeGenerator = ({ userId, onNavigateToPantry }: RecipeGeneratorProps) =
   const [manualIngredient, setManualIngredient] = useState("");
   const [manualQuantity, setManualQuantity] = useState(1);
   const [manualUnit, setManualUnit] = useState("pieces");
+  const [pantryItemQuantities, setPantryItemQuantities] = useState<{[key: string]: number}>({});
   const [formData, setFormData] = useState({
     name: "",
     quantity: 1,
@@ -188,7 +189,8 @@ const RecipeGenerator = ({ userId, onNavigateToPantry }: RecipeGeneratorProps) =
   };
 
   const togglePantryItem = (item: PantryItem) => {
-    const ingredientText = `${item.quantity} ${item.unit} ${item.name}`;
+    const selectedQuantity = pantryItemQuantities[item.id] || 1;
+    const ingredientText = `${selectedQuantity} ${item.unit} ${item.name}`;
     const isSelected = selectedIngredients.some(ingredient => 
       ingredient.includes(item.name)
     );
@@ -197,9 +199,28 @@ const RecipeGenerator = ({ userId, onNavigateToPantry }: RecipeGeneratorProps) =
       setSelectedIngredients(selectedIngredients.filter(ingredient => 
         !ingredient.includes(item.name)
       ));
+      // Remove quantity tracking when unselected
+      const newQuantities = { ...pantryItemQuantities };
+      delete newQuantities[item.id];
+      setPantryItemQuantities(newQuantities);
     } else {
       setSelectedIngredients([...selectedIngredients, ingredientText]);
+      // Set initial quantity when selected
+      setPantryItemQuantities(prev => ({ ...prev, [item.id]: 1 }));
     }
+  };
+
+  const updatePantryItemQuantity = (item: PantryItem, newQuantity: number) => {
+    // Ensure quantity doesn't exceed available amount or go below 1
+    const clampedQuantity = Math.max(1, Math.min(newQuantity, item.quantity));
+    setPantryItemQuantities(prev => ({ ...prev, [item.id]: clampedQuantity }));
+    
+    // Update the ingredient in the selected list
+    const ingredientText = `${clampedQuantity} ${item.unit} ${item.name}`;
+    const updatedIngredients = selectedIngredients.map(ingredient => 
+      ingredient.includes(item.name) ? ingredientText : ingredient
+    );
+    setSelectedIngredients(updatedIngredients);
   };
 
   if (isLoading) {
@@ -322,30 +343,70 @@ const RecipeGenerator = ({ userId, onNavigateToPantry }: RecipeGeneratorProps) =
         <div className="space-y-6">
           {/* Main content grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Select Pantry Items Section - Show items directly */}
+            {/* Select Pantry Items Section - with quantity controls */}
             <Card>
               <CardHeader>
                 <CardTitle>Select Pantry Items</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2 max-h-64 overflow-y-auto">
+                <div className="space-y-3 max-h-64 overflow-y-auto">
                   {pantryItems.map((item) => {
                     const isSelected = selectedIngredients.some(ingredient => 
                       ingredient.includes(item.name)
                     );
+                    const selectedQuantity = pantryItemQuantities[item.id] || 1;
+                    
                     return (
                       <div
                         key={item.id}
-                        className={`p-2 border rounded cursor-pointer ${
+                        className={`p-3 border rounded ${
                           isSelected ? 'bg-primary/10 border-primary' : 'hover:bg-muted'
                         }`}
-                        onClick={() => togglePantryItem(item)}
                       >
                         <div className="flex justify-between items-center">
-                          <span className="font-medium">{item.name}</span>
-                          <span className="text-sm text-muted-foreground">
-                            {item.quantity} {item.unit}
-                          </span>
+                          <div 
+                            className="flex-1 cursor-pointer"
+                            onClick={() => togglePantryItem(item)}
+                          >
+                            <span className="font-medium">{item.name}</span>
+                            <span className="text-sm text-muted-foreground ml-2">
+                              (Available: {item.quantity} {item.unit})
+                            </span>
+                          </div>
+                          
+                          {isSelected && (
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-6 w-6 p-0"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  updatePantryItemQuantity(item, selectedQuantity - 1);
+                                }}
+                                disabled={selectedQuantity <= 1}
+                              >
+                                <Minus className="w-3 h-3" />
+                              </Button>
+                              
+                              <span className="text-sm font-medium min-w-[3rem] text-center">
+                                {selectedQuantity} {item.unit}
+                              </span>
+                              
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-6 w-6 p-0"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  updatePantryItemQuantity(item, selectedQuantity + 1);
+                                }}
+                                disabled={selectedQuantity >= item.quantity}
+                              >
+                                <Plus className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       </div>
                     );

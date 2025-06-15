@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Calendar, Settings, Apple, Carrot, Milk, Beef, Wheat, Utensils, Package2, Snowflake, HelpCircle, Package, Share, Sigma } from "lucide-react";
+import { Plus, Trash2, Calendar, Settings, Apple, Carrot, Milk, Beef, Wheat, Utensils, Package2, Snowflake, HelpCircle, Package } from "lucide-react";
 import { format } from "date-fns";
 
 interface PantryItem {
@@ -40,7 +40,7 @@ const categoryIcons = {
 };
 
 const categories = [
-  { value: "all", label: "All Categories", icon: Sigma },
+  { value: "all", label: "All Categories", icon: Package },
   { value: "fruits", label: "Fruits", icon: Apple },
   { value: "vegetables", label: "Vegetables", icon: Carrot },
   { value: "dairy", label: "Dairy", icon: Milk },
@@ -413,7 +413,7 @@ const PantryManager = ({ userId }: PantryManagerProps) => {
       {/* Category Filter and Select All */}
       {pantryItems.length > 0 && (
         <div className="flex justify-between items-center">
-          <div className="space-y-3">
+          <div className="flex items-center gap-3">
             <Label>Filter by Category</Label>
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
               <SelectTrigger className="w-48">
@@ -494,7 +494,7 @@ const PantryManager = ({ userId }: PantryManagerProps) => {
                     }}
                     disabled={deleteItemMutation.isPending}
                   >
-                    <Trash2 className="w-6 h-6" />
+                    <Trash2 className="w-8 h-8" />
                   </Button>
 
                   <div className="flex flex-col items-start text-left space-y-3">

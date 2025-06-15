@@ -11,10 +11,13 @@ import { useQuery } from "@tanstack/react-query";
 import { ChefHat, Package, Users, Home, Menu, Utensils, Share2, Sparkles } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("landing");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false);
+  const [authTabValue, setAuthTabValue] = useState("signin");
   
   const { data: session } = useQuery({
     queryKey: ['session'],
@@ -28,13 +31,24 @@ const Index = () => {
     if (session) {
       setActiveTab("pantry");
     } else {
-      setActiveTab("auth");
+      setAuthTabValue("signin");
+      setIsAuthDialogOpen(true);
     }
   };
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     setActiveTab("landing");
+  };
+
+  const handleSignUpClick = () => {
+    setAuthTabValue("signup");
+    setIsAuthDialogOpen(true);
+  };
+
+  const handleLoginClick = () => {
+    setAuthTabValue("signin");
+    setIsAuthDialogOpen(true);
   };
 
   // If no session and not on landing page, show auth
@@ -69,15 +83,17 @@ const Index = () => {
             </div>
             
             <div className="flex items-center gap-1">
-              <Button
-                variant={activeTab === "landing" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setActiveTab("landing")}
-                className="px-3"
-              >
-                <Home className="w-4 h-4 mr-2" />
-                Home
-              </Button>
+              {session && (
+                <Button
+                  variant={activeTab === "landing" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setActiveTab("landing")}
+                  className="px-3"
+                >
+                  <Home className="w-4 h-4 mr-2" />
+                  Home
+                </Button>
+              )}
               
               {session ? (
                 <>
@@ -114,7 +130,7 @@ const Index = () => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => setActiveTab("auth")}
+                    onClick={handleLoginClick}
                     className="px-3"
                   >
                     Login
@@ -122,7 +138,7 @@ const Index = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setActiveTab("auth")}
+                    onClick={handleSignUpClick}
                     className="px-3"
                   >
                     Sign Up
@@ -152,13 +168,15 @@ const Index = () => {
             </div>
             
             <div className="flex items-center gap-2">
-              <Button
-                variant={activeTab === "landing" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setActiveTab("landing")}
-              >
-                <Home className="w-4 h-4" />
-              </Button>
+              {session && (
+                <Button
+                  variant={activeTab === "landing" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setActiveTab("landing")}
+                >
+                  <Home className="w-4 h-4" />
+                </Button>
+              )}
               <Popover open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
                 <PopoverTrigger asChild>
                   <Button variant="ghost" size="sm">
@@ -208,14 +226,14 @@ const Index = () => {
                         <Button
                           variant="ghost"
                           className="justify-start"
-                          onClick={() => handleNavigation("auth")}
+                          onClick={handleLoginClick}
                         >
                           Login
                         </Button>
                         <Button
                           variant="outline"
                           className="justify-start"
-                          onClick={() => handleNavigation("auth")}
+                          onClick={handleSignUpClick}
                         >
                           Sign Up
                         </Button>
@@ -228,6 +246,16 @@ const Index = () => {
           </div>
         </div>
       </div>
+
+      {/* Auth Dialog */}
+      <Dialog open={isAuthDialogOpen} onOpenChange={setIsAuthDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Authentication</DialogTitle>
+          </DialogHeader>
+          <AuthComponent defaultTab={authTabValue} onClose={() => setIsAuthDialogOpen(false)} />
+        </DialogContent>
+      </Dialog>
 
       {/* Content */}
       {activeTab === "landing" ? (

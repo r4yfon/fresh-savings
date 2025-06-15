@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,11 +9,21 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { ChefHat } from "lucide-react";
 
-const AuthComponent = () => {
+interface AuthComponentProps {
+  defaultTab?: string;
+  onClose?: () => void;
+}
+
+const AuthComponent = ({ defaultTab = "signin", onClose }: AuthComponentProps) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState(defaultTab);
   const { toast } = useToast();
+
+  useEffect(() => {
+    setActiveTab(defaultTab);
+  }, [defaultTab]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,6 +45,9 @@ const AuthComponent = () => {
         title: "Success",
         description: "Signed in successfully!",
       });
+      if (onClose) {
+        onClose();
+      }
       // Trigger a page refresh to let the Index component handle the redirect
       window.location.reload();
     }
@@ -80,7 +93,7 @@ const AuthComponent = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="signin" className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="signin">Sign In</TabsTrigger>
               <TabsTrigger value="signup">Sign Up</TabsTrigger>
