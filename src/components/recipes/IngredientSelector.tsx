@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { X } from "lucide-react";
 
 interface IngredientSelectorProps {
@@ -19,7 +20,7 @@ interface IngredientSelectorProps {
 const IngredientSelector = ({ userId, selectedIngredients, onIngredientsChange }: IngredientSelectorProps) => {
   const [customIngredient, setCustomIngredient] = useState("");
   const [customQuantity, setCustomQuantity] = useState("");
-  const [customUnit, setCustomUnit] = useState("");
+  const [customUnit, setCustomUnit] = useState("pieces");
 
   const { data: pantryItems = [] } = useQuery({
     queryKey: ['pantry-items', userId],
@@ -47,14 +48,14 @@ const IngredientSelector = ({ userId, selectedIngredients, onIngredientsChange }
   const handleAddCustomIngredient = () => {
     if (customIngredient.trim()) {
       const quantity = customQuantity.trim() || "1";
-      const unit = customUnit.trim() || "piece";
-      const ingredientText = `${quantity} ${unit}${parseInt(quantity) > 1 && unit !== 'piece' ? 's' : ''} ${customIngredient.trim()}`;
+      const unit = customUnit;
+      const ingredientText = `${quantity} ${unit} ${customIngredient.trim()}`;
       
       if (!selectedIngredients.includes(ingredientText)) {
         onIngredientsChange([...selectedIngredients, ingredientText]);
         setCustomIngredient("");
         setCustomQuantity("");
-        setCustomUnit("");
+        setCustomUnit("pieces");
       }
     }
   };
@@ -131,13 +132,16 @@ const IngredientSelector = ({ userId, selectedIngredients, onIngredientsChange }
             </div>
             <div className="space-y-1">
               <Label htmlFor="unit" className="text-xs">Unit</Label>
-              <Input
-                id="unit"
-                placeholder="cup, tsp, etc."
-                value={customUnit}
-                onChange={(e) => setCustomUnit(e.target.value)}
-                className="h-8"
-              />
+              <Select value={customUnit} onValueChange={setCustomUnit}>
+                <SelectTrigger className="h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="kilograms">Kilograms</SelectItem>
+                  <SelectItem value="litres">Litres</SelectItem>
+                  <SelectItem value="pieces">Pieces</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1">
               <Label htmlFor="ingredient" className="text-xs">Ingredient</Label>
