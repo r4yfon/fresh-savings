@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Calendar, Settings, Apple, Carrot, Milk, Beef, Wheat, Utensils, Package2, Snowflake, HelpCircle } from "lucide-react";
+import { Plus, Trash2, Calendar, Settings, Apple, Carrot, Milk, Beef, Wheat, Utensils, Package2, Snowflake, HelpCircle, Package } from "lucide-react";
 import { format } from "date-fns";
 
 interface PantryItem {
@@ -42,16 +41,16 @@ const categoryIcons = {
 };
 
 const categories = [
-  { value: "all", label: "All Categories" },
-  { value: "fruits", label: "Fruits" },
-  { value: "vegetables", label: "Vegetables" },
-  { value: "dairy", label: "Dairy" },
-  { value: "meat", label: "Meat" },
-  { value: "grains", label: "Grains" },
-  { value: "spices", label: "Spices" },
-  { value: "canned", label: "Canned Goods" },
-  { value: "frozen", label: "Frozen" },
-  { value: "other", label: "Other" },
+  { value: "all", label: "All Categories", icon: HelpCircle },
+  { value: "fruits", label: "Fruits", icon: Apple },
+  { value: "vegetables", label: "Vegetables", icon: Carrot },
+  { value: "dairy", label: "Dairy", icon: Milk },
+  { value: "meat", label: "Meat", icon: Beef },
+  { value: "grains", label: "Grains", icon: Wheat },
+  { value: "spices", label: "Spices", icon: Utensils },
+  { value: "canned", label: "Canned Goods", icon: Package2 },
+  { value: "frozen", label: "Frozen", icon: Snowflake },
+  { value: "other", label: "Other", icon: HelpCircle },
 ];
 
 const PantryManager = ({ userId }: PantryManagerProps) => {
@@ -281,7 +280,7 @@ const PantryManager = ({ userId }: PantryManagerProps) => {
                 onClick={() => setIsManageMode(!isManageMode)}
               >
                 <Settings className="w-4 h-4 mr-2" />
-                Manage Pantry
+                {isManageMode ? "Pantry Tidied" : "Manage Pantry"}
               </Button>
               {isManageMode && selectedItems.length > 0 && (
                 <AlertDialog>
@@ -301,27 +300,6 @@ const PantryManager = ({ userId }: PantryManagerProps) => {
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
                       <AlertDialogAction onClick={handleBulkDelete} className="bg-red-600 hover:bg-red-700">Delete</AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              )}
-              {isManageMode && (
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="destructive" disabled={clearPantryMutation.isPending}>
-                      Clear All Pantry
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Clear Entire Pantry</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Are you sure you want to clear your entire pantry? This will delete all {pantryItems.length} items and cannot be undone.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleClearPantry} className="bg-red-600 hover:bg-red-700">Clear All</AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
@@ -391,15 +369,17 @@ const PantryManager = ({ userId }: PantryManagerProps) => {
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="vegetables">Vegetables</SelectItem>
-                      <SelectItem value="fruits">Fruits</SelectItem>
-                      <SelectItem value="dairy">Dairy</SelectItem>
-                      <SelectItem value="meat">Meat</SelectItem>
-                      <SelectItem value="grains">Grains</SelectItem>
-                      <SelectItem value="spices">Spices</SelectItem>
-                      <SelectItem value="canned">Canned Goods</SelectItem>
-                      <SelectItem value="frozen">Frozen</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
+                      {categories.slice(1).map((category) => {
+                        const IconComponent = category.icon;
+                        return (
+                          <SelectItem key={category.value} value={category.value}>
+                            <div className="flex items-center gap-2">
+                              <IconComponent className="w-4 h-4" />
+                              {category.label}
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                 </div>
@@ -432,11 +412,17 @@ const PantryManager = ({ userId }: PantryManagerProps) => {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {categories.map((category) => (
-                <SelectItem key={category.value} value={category.value}>
-                  {category.label}
-                </SelectItem>
-              ))}
+              {categories.map((category) => {
+                const IconComponent = category.icon;
+                return (
+                  <SelectItem key={category.value} value={category.value}>
+                    <div className="flex items-center gap-2">
+                      <IconComponent className="w-4 h-4" />
+                      {category.label}
+                    </div>
+                  </SelectItem>
+                );
+              })}
             </SelectContent>
           </Select>
         </div>
@@ -447,6 +433,14 @@ const PantryManager = ({ userId }: PantryManagerProps) => {
           <CardContent className="flex flex-col items-center justify-center py-8">
             <p className="text-muted-foreground">Your pantry is empty</p>
             <p className="text-sm text-muted-foreground">Add some items to get started!</p>
+          </CardContent>
+        </Card>
+      ) : filteredPantryItems.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-8">
+            <Package className="w-12 h-12 text-muted-foreground mb-4" />
+            <p className="text-muted-foreground">No items in this category</p>
+            <p className="text-sm text-muted-foreground">Try selecting a different category or add some items!</p>
           </CardContent>
         </Card>
       ) : (
@@ -501,9 +495,13 @@ const PantryManager = ({ userId }: PantryManagerProps) => {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
-                      <p className="font-medium">{item.quantity} {item.unit}</p>
                       {item.category && (
-                        <p className="text-sm text-muted-foreground capitalize">{item.category}</p>
+                        <p className="text-sm text-muted-foreground capitalize">
+                          {item.category} · {item.quantity} {item.unit}
+                        </p>
+                      )}
+                      {!item.category && (
+                        <p className="font-medium">{item.quantity} {item.unit}</p>
                       )}
                       {item.expiry_date && (
                         <div className={`flex items-center gap-1 text-sm ${isExpiringSoon(item.expiry_date) ? 'text-red-600' : 'text-muted-foreground'}`}>

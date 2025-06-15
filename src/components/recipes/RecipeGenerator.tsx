@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ChefHat, Package, Plus } from "lucide-react";
 import AIRecipeGenerator from "./AIRecipeGenerator";
 import IngredientSelector from "./IngredientSelector";
+import PantryItemSelector from "./PantryItemSelector";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 
@@ -31,6 +31,7 @@ interface RecipeGeneratorProps {
 
 const RecipeGenerator = ({ userId, onNavigateToPantry }: RecipeGeneratorProps) => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isPantryModalOpen, setIsPantryModalOpen] = useState(false);
   const [selectedIngredients, setSelectedIngredients] = useState<string[]>([]);
   const [generatedRecipe, setGeneratedRecipe] = useState<any>(null);
   const [formData, setFormData] = useState({
@@ -247,6 +248,16 @@ const RecipeGenerator = ({ userId, onNavigateToPantry }: RecipeGeneratorProps) =
         </Card>
       ) : (
         <div className="space-y-6">
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setIsPantryModalOpen(true)}
+            >
+              <Package className="w-4 h-4 mr-2" />
+              Use Pantry Items
+            </Button>
+          </div>
+
           <IngredientSelector
             userId={userId}
             selectedIngredients={selectedIngredients}
