@@ -33,7 +33,7 @@ const AuthComponent = ({
           <div className="flex justify-center mb-4">
             <ChefHat className="h-12 w-12 text-primary" />
           </div>
-          <CardTitle className="text-2xl">Smart Pantry</CardTitle>
+          <CardTitle className="text-2xl">FreshSavings</CardTitle>
           <CardDescription>
             Track groceries, generate recipes, and connect with your community
           </CardDescription>
