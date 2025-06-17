@@ -1,4 +1,3 @@
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -19,9 +18,13 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { usePollinationsText } from "@pollinations/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Minus, Package, Plus, Sparkles, X } from "lucide-react";
-import { useState } from "react";
+import { Loader2, Package, Plus, Sparkles } from "lucide-react";
+import React, { useState } from "react";
+import ManualIngredientInput from "./ManualIngredientInput";
+import PantryItemSelector from "./PantryItemSelector";
+import SelectedIngredientsList from "./SelectedIngredientsList";
 
 interface PantryItem {
   id: string;
@@ -66,6 +69,9 @@ const RecipeGenerator = ({
     expiry_date: "",
     category: "",
   });
+  const [pollinationsPrompt, setPollinationsPrompt] = useState<string | null>(
+    null,
+  );
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -188,6 +194,19 @@ const RecipeGenerator = ({
     setIsAddDialogOpen(true);
   };
 
+  const pollinationsResult = usePollinationsText(
+    pollinationsPrompt
+      ? `Generate some recipes with custom ingredients: ${pollinationsPrompt}
+      Please return the result as JSON with fields: name, ingredients, kitchenEquipment, instructions, cookingTime.`
+      : "",
+    {
+      seed: 42,
+      model: "mistral",
+      systemPrompt:
+        "You are a helpful recipe generator. Based on the given ingredients, generate a recipe with a name, ingredients, kitchen equipment needed, instructions, and cooking time. Return as JSON.",
+    },
+  );
+
   const handleGenerateRecipe = () => {
     if (selectedIngredients.length === 0) {
       toast({
@@ -198,7 +217,7 @@ const RecipeGenerator = ({
       });
       return;
     }
-    generateRecipeMutation.mutate(selectedIngredients);
+    setPollinationsPrompt(selectedIngredients.join(", "));
   };
 
   const removeIngredient = (indexToRemove: number) => {
@@ -271,6 +290,18 @@ const RecipeGenerator = ({
 
   return (
     <div className="space-y-6">
+      {/* Optionally show pollinationsResult */}
+      {pollinationsPrompt && (
+        <div>
+          <h4 className="font-medium mb-2">Pollinations.ai Recipe Output:</h4>
+          <pre className="bg-muted p-2 rounded text-xs overflow-x-auto">
+            {typeof pollinationsResult === "string"
+              ? pollinationsResult
+              : JSON.stringify(pollinationsResult, null, 2)}
+          </pre>
+        </div>
+      )}
+
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Recipe Generator</h2>
         {pantryItems.length === 0 && (
@@ -400,192 +431,68 @@ const RecipeGenerator = ({
       ) : (
         <div className="space-y-6">
           {/* Main content grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Select Pantry Items Section - with quantity controls */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Select Pantry Items</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3 max-h-64 overflow-y-auto">
-                  {pantryItems.map((item) => {
-                    const isSelected = selectedIngredients.some((ingredient) =>
-                      ingredient.includes(item.name),
-                    );
-                    const selectedQuantity = pantryItemQuantities[item.id] || 1;
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full mt-6">
+            {/* Left column */}
+            <div className="flex flex-col gap-6 md:col-span-2">
+              {/* Pantry selector */}
+              <PantryItemSelector
+                pantryItems={pantryItems}
+                selectedIngredients={selectedIngredients}
+                pantryItemQuantities={pantryItemQuantities}
+                togglePantryItem={togglePantryItem}
+                updatePantryItemQuantity={updatePantryItemQuantity}
+              />
 
-                    return (
-                      <div
-                        className={`flex justify-between items-center border rounded ${
-                          isSelected
-                            ? "bg-primary/10 border-primary"
-                            : "hover:bg-muted"
-                        }`}>
-                        <div
-                          className="flex-1 cursor-pointer p-3"
-                          onClick={() => togglePantryItem(item)}>
-                          <span className="font-medium">{item.name}</span>
-                          <span className="text-sm text-muted-foreground ml-2">
-                            (Available: {item.quantity} {item.unit})
-                          </span>
-                        </div>
+              {/* "or..." text */}
+              <div className="font-bold px-2">You can also...</div>
 
-                        {isSelected && (
-                          <div className="flex items-center gap-2 mr-3">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-6 w-6 p-0"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                updatePantryItemQuantity(
-                                  item,
-                                  selectedQuantity - 1,
-                                );
-                              }}
-                              disabled={selectedQuantity <= 1}>
-                              <Minus className="w-3 h-3" />
-                            </Button>
-
-                            <span className="text-sm font-medium min-w-[3rem] text-center">
-                              {selectedQuantity} {item.unit}
-                            </span>
-
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-6 w-6 p-0"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                updatePantryItemQuantity(
-                                  item,
-                                  selectedQuantity + 1,
-                                );
-                              }}
-                              disabled={selectedQuantity >= item.quantity}>
-                              <Plus className="w-3 h-3" />
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Manual Ingredients Section - Add quantity and unit */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Manually Add Ingredients</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="grid grid-cols-3 gap-2">
-                    <div>
-                      <Label htmlFor="manual-ingredient" className="text-xs">
-                        Ingredient
-                      </Label>
-                      <Input
-                        id="manual-ingredient"
-                        value={manualIngredient}
-                        onChange={(e) => setManualIngredient(e.target.value)}
-                        onKeyPress={handleKeyPress}
-                        placeholder="Enter name..."
-                        className="text-sm"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="manual-quantity" className="text-xs">
-                        Quantity
-                      </Label>
-                      <Input
-                        id="manual-quantity"
-                        type="number"
-                        min="1"
-                        value={manualQuantity}
-                        onChange={(e) =>
-                          setManualQuantity(parseInt(e.target.value))
-                        }
-                        className="text-sm"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="manual-unit" className="text-xs">
-                        Unit
-                      </Label>
-                      <Select value={manualUnit} onValueChange={setManualUnit}>
-                        <SelectTrigger className="text-sm">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="pieces">Pieces</SelectItem>
-                          <SelectItem value="kilograms">Kilograms</SelectItem>
-                          <SelectItem value="litres">Litres</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <Button
-                    onClick={addManualIngredient}
-                    disabled={!manualIngredient.trim()}
-                    className="w-full">
-                    <Plus className="w-4 h-4" />
-                    Add Ingredient
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Selected Ingredients Section - moved here to prevent jumpiness */}
-          {selectedIngredients.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Selected Ingredients</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  {selectedIngredients.map((ingredient, index) => (
-                    <Badge key={index} variant="secondary" className="text-sm">
-                      {ingredient}
-                      <button
-                        onClick={() => removeIngredient(index)}
-                        className="ml-2 hover:text-red-600">
-                        <X className="w-3 h-3" />
-                      </button>
-                    </Badge>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Simple AI Recipe Generator Button - Remove card styling */}
-          {selectedIngredients.length > 0 && (
-            <div className="flex justify-center">
-              <Button
-                onClick={handleGenerateRecipe}
-                disabled={
-                  selectedIngredients.length === 0 ||
-                  generateRecipeMutation.isPending
-                }
-                className="w-full"
-                size="lg">
-                {generateRecipeMutation.isPending ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Generating Recipe...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-4 h-4" />
-                    Generate Recipe ({selectedIngredients.length} ingredients)
-                  </>
-                )}
-              </Button>
+              {/* Manual add */}
+              <ManualIngredientInput
+                manualIngredient={manualIngredient}
+                setManualIngredient={setManualIngredient}
+                manualQuantity={manualQuantity}
+                setManualQuantity={setManualQuantity}
+                manualUnit={manualUnit}
+                setManualUnit={setManualUnit}
+                addManualIngredient={addManualIngredient}
+                handleKeyPress={handleKeyPress}
+              />
             </div>
-          )}
+
+            {/* Right column */}
+            <div className="flex flex-col gap-4 h-full md:col-span-1">
+              {selectedIngredients.length > 0 && (
+                <>
+                  <SelectedIngredientsList
+                    selectedIngredients={selectedIngredients}
+                    removeIngredient={removeIngredient}
+                  />
+
+                  <Button
+                    onClick={handleGenerateRecipe}
+                    disabled={
+                      selectedIngredients.length === 0 ||
+                      generateRecipeMutation.isPending
+                    }
+                    className="w-full"
+                    size="lg">
+                    {generateRecipeMutation.isPending ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Generating Recipe...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4" />
+                        Generate Recipe ({selectedIngredients.length}{" "}
+                        ingredients)
+                      </>
+                    )}
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
 
           {/* Generated Recipe Display */}
           {generatedRecipe && (

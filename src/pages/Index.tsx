@@ -1,8 +1,8 @@
 import AuthComponent from "@/components/auth/AuthComponent";
-import FoodContributions from "@/components/contributions/FoodContributions";
+import FoodContributions from "@/components/community-kitchen/FoodContributions";
 import LandingPage from "@/components/landing/LandingPage";
 import PantryManager from "@/components/pantry/PantryManager";
-import RecipeGenerator from "@/components/recipes/RecipeGenerator";
+import RecipeGenerator from "@/components/recipe-generator/RecipeGenerator";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import {
